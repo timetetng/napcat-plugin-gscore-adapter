@@ -63,10 +63,11 @@ export class GScoreService {
       url = url.slice(0, -1);
     }
 
-    // 使用固定的 bot_id: "napcat"
-    // 如果 url 不包含 /ws/，则拼接 /ws/napcat
+    // 使用 napcat-qq号 作为 bot_id 以兼容多bot
+    const botId = `napcat-${pluginState.selfId || 'unknown'}`;
+    // 如果 url 不包含 /ws/，则拼接 /ws/{botId}
     if (!url.includes('/ws/')) {
-      url = `${url}/ws/napcat`;
+      url = `${url}/ws/${botId}`;
     }
 
     const token = pluginState.config.gscoreToken || '';
