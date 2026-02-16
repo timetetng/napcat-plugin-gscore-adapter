@@ -29,6 +29,7 @@ export class GScoreService {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isConnecting: boolean = false;
   private reconnectAttempts: number = 0;
+  private isManualRetry: boolean = false;
   private readonly MAX_RECONNECT_DELAY = 30000;
   private readonly MIN_RECONNECT_DELAY = 1000;
 
@@ -43,9 +44,39 @@ export class GScoreService {
 
   public getStatus(): 'connected' | 'connecting' | 'disconnected' {
     if (this.ws?.readyState === WebSocket.OPEN) return 'connected';
-    if (this.isConnecting || this.ws?.readyState === WebSocket.CONNECTING) return 'connecting';
+    if (this.isConnecting || this.ws?.readyState === WebSocket.CONNECTING || this.reconnectTimer) return 'connecting';
     return 'disconnected';
   }
+
+  /**
+   * 手动重连命令处理
+   */
+  public async manualReconnect(): Promise<string> {
+    if (this.isManualRetry) {
+      return '⚠️ 手动重连正在进行中，请勿重复触发。';
+    }
+
+    const maxAttempts = pluginState.config.maxReconnectAttempts ?? 10;
+    if (maxAttempts === 0) {
+      return '当前已开启无限重连模式，连接器会自动尝试连接，您无需执行此命令。';
+    }
+
+    const status = this.getStatus();
+    if (status === 'connected') {
+      return '✅ 当前 Bot 已连接。';
+    }
+    if (status === 'connecting') {
+      return '🔄 正在重连中，请稍后查看状态。';
+    }
+
+    this.disconnect(true);
+    this.isManualRetry = true;
+    pluginState.logger.info('[GScore] 触发手动重连命令');
+    this.connect();
+
+    return '🔄 正在执行手动重连...';
+  }
+
 
   public connect() {
     if (!pluginState.config.gscoreEnable) {
@@ -87,6 +118,7 @@ export class GScoreService {
         pluginState.logger.info('[GScore] 连接成功！');
         this.isConnecting = false;
         this.reconnectAttempts = 0;
+        this.isManualRetry = false;
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
           this.reconnectTimer = null;
@@ -126,7 +158,7 @@ export class GScoreService {
     }
   }
 
-  public disconnect() {
+  public disconnect(resetCounter: boolean = true) {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -137,18 +169,27 @@ export class GScoreService {
       this.ws = null;
     }
     this.isConnecting = false;
-    this.reconnectAttempts = 0;
+    if (resetCounter) {
+      this.reconnectAttempts = 0;
+      this.isManualRetry = false;
+    }
   }
 
   private scheduleReconnect() {
     if (!pluginState.config.gscoreEnable) return;
 
-    const maxAttempts = pluginState.config.maxReconnectAttempts ?? 10;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    const maxAttempts = this.isManualRetry ? 3 : (pluginState.config.maxReconnectAttempts ?? 10);
 
     // maxAttempts 为 0 时表示无限重试
     if (maxAttempts > 0 && this.reconnectAttempts >= maxAttempts) {
-      pluginState.logger.error(`[GScore] 重连次数已达上限 (${maxAttempts})，停止重连。请检查配置或手动重试。`);
-      this.reconnectAttempts = 0;
+      const mode = this.isManualRetry ? '手动' : '自动';
+      pluginState.logger.error(`[GScore] ${mode}重连次数已达上限 (${maxAttempts})，停止重连。请检查配置或手动重试。`);
+      this.isManualRetry = false;
       return;
     }
 
@@ -159,6 +200,7 @@ export class GScoreService {
     pluginState.logger.info(`[GScore] ${interval / 1000} 秒后尝试重连 (${attemptInfo})...`);
 
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this.reconnectAttempts++;
       this.connect();
     }, interval);
