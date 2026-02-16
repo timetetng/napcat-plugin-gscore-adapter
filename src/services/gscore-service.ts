@@ -131,6 +131,7 @@ export class GScoreService {
       this.reconnectTimer = null;
     }
     if (this.ws) {
+      this.ws.removeAllListeners();
       this.ws.close();
       this.ws = null;
     }
@@ -146,6 +147,7 @@ export class GScoreService {
     // maxAttempts 为 0 时表示无限重试
     if (maxAttempts > 0 && this.reconnectAttempts >= maxAttempts) {
       pluginState.logger.error(`[GScore] 重连次数已达上限 (${maxAttempts})，停止重连。请检查配置或手动重试。`);
+      this.reconnectAttempts = 0;
       return;
     }
 
