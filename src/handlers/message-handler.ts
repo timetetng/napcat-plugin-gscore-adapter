@@ -219,6 +219,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                     `[= 插件帮助 =]`,
                     `${prefix} help - 显示帮助信息`,
                     `${prefix} status - 查看连接器状态`,
+                    `${prefix} 重连 - 立即重连GScore服务`,
                     ``,
                     `[= 管理命令 (前缀: ${prefix}) =]`,
                     `${prefix}群开启/群启用 - 开启本群早柚核心`,
@@ -247,6 +248,15 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                     `黑名单人数: ${blacklistCount}`,
                 ].join('\n');
                 await sendReply(ctx, event, statusText);
+                break;
+            }
+
+            case 'reconnect':
+            case '重连': {
+                if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+                await sendReply(ctx, event, '🔄 正在尝试立即重连 GScore 服务...');
+                const { GScoreService } = await import('../services/gscore-service');
+                GScoreService.getInstance().connect();
                 break;
             }
 
