@@ -84,7 +84,16 @@ export class GScoreService {
       return;
     }
 
-    if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) return;
+    if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
+      pluginState.logger.debug('[GScore] 连接已存在或正在连接中，跳过重复连接');
+      return;
+    }
+
+    // 如果存在定时器，先清除
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
 
     this.isConnecting = true;
     let url = pluginState.config.gscoreUrl || 'ws://localhost:8765';
@@ -142,19 +151,22 @@ export class GScoreService {
 
       this.ws.on('error', (err) => {
         pluginState.logger.error('[GScore] 连接错误:', err.message);
+        if (this.isConnecting) {
+          this.isConnecting = false;
+        }
       });
 
       this.ws.on('close', (code, reason) => {
         this.isConnecting = false;
         this.ws = null;
         pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reason}`);
-        this.scheduleReconnect();
+        setImmediate(() => this.scheduleReconnect());
       });
 
     } catch (error) {
       pluginState.logger.error('[GScore] 创建连接失败:', error);
       this.isConnecting = false;
-      this.scheduleReconnect();
+      setImmediate(() => this.scheduleReconnect());
     }
   }
 
@@ -202,6 +214,7 @@ export class GScoreService {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.reconnectAttempts++;
+      pluginState.logger.info(`[GScore] 开始第 ${this.reconnectAttempts} 次重连尝试...`);
       this.connect();
     }, interval);
   }
