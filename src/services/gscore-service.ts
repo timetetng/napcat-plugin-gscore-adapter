@@ -27,11 +27,11 @@ export class GScoreService {
   private static instance: GScoreService;
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private connectionTimeout: NodeJS.Timeout | null = null;
   private isConnecting: boolean = false;
   private reconnectAttempts: number = 0;
   private isManualRetry: boolean = false;
-  private readonly MAX_RECONNECT_DELAY = 30000;
-  private readonly MIN_RECONNECT_DELAY = 1000;
+  private readonly CONNECTION_TIMEOUT = 10000;
 
   private constructor() { }
 
@@ -94,6 +94,10 @@ export class GScoreService {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
 
     this.isConnecting = true;
     let url = pluginState.config.gscoreUrl || 'ws://localhost:8765';
@@ -123,7 +127,19 @@ export class GScoreService {
     try {
       this.ws = new WebSocket(wsUrl.toString());
 
+      this.connectionTimeout = setTimeout(() => {
+        if (this.isConnecting && this.ws && this.ws.readyState !== WebSocket.OPEN) {
+          pluginState.logger.warn('[GScore] 连接超时，正在终止...');
+          this.isConnecting = false;
+          this.ws.terminate();
+        }
+      }, this.CONNECTION_TIMEOUT);
+
       this.ws.on('open', () => {
+        if (this.connectionTimeout) {
+          clearTimeout(this.connectionTimeout);
+          this.connectionTimeout = null;
+        }
         pluginState.logger.info('[GScore] 连接成功！');
         this.isConnecting = false;
         this.reconnectAttempts = 0;
@@ -157,6 +173,10 @@ export class GScoreService {
       });
 
       this.ws.on('close', (code, reason) => {
+        if (this.connectionTimeout) {
+          clearTimeout(this.connectionTimeout);
+          this.connectionTimeout = null;
+        }
         this.isConnecting = false;
         this.ws = null;
         pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reason}`);
@@ -174,6 +194,10 @@ export class GScoreService {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
     }
     if (this.ws) {
       this.ws.removeAllListeners();
