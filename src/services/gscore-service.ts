@@ -31,6 +31,7 @@ export class GScoreService {
   private isConnecting: boolean = false;
   private reconnectAttempts: number = 0;
   private isManualRetry: boolean = false;
+  private isTimeoutTerminated: boolean = false;
   private readonly CONNECTION_TIMEOUT = 10000;
 
   private constructor() { }
@@ -130,6 +131,7 @@ export class GScoreService {
       this.connectionTimeout = setTimeout(() => {
         if (this.isConnecting && this.ws && this.ws.readyState !== WebSocket.OPEN) {
           pluginState.logger.warn('[GScore] 连接超时，正在终止...');
+          this.isTimeoutTerminated = true;
           this.isConnecting = false;
           this.ws.terminate();
         }
@@ -142,6 +144,7 @@ export class GScoreService {
         }
         pluginState.logger.info('[GScore] 连接成功！');
         this.isConnecting = false;
+        this.isTimeoutTerminated = false;
         this.reconnectAttempts = 0;
         this.isManualRetry = false;
         if (this.reconnectTimer) {
@@ -166,7 +169,9 @@ export class GScoreService {
       });
 
       this.ws.on('error', (err) => {
-        pluginState.logger.error('[GScore] 连接错误:', err.message);
+        if (!this.isTimeoutTerminated) {
+          pluginState.logger.error('[GScore] 连接错误:', err.message);
+        }
         if (this.isConnecting) {
           this.isConnecting = false;
         }
@@ -179,7 +184,10 @@ export class GScoreService {
         }
         this.isConnecting = false;
         this.ws = null;
-        pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reason}`);
+        if (!this.isTimeoutTerminated) {
+          pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reason}`);
+        }
+        this.isTimeoutTerminated = false;
         setImmediate(() => this.scheduleReconnect());
       });
 
@@ -205,6 +213,7 @@ export class GScoreService {
       this.ws = null;
     }
     this.isConnecting = false;
+    this.isTimeoutTerminated = false;
     if (resetCounter) {
       this.reconnectAttempts = 0;
       this.isManualRetry = false;
