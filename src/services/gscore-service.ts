@@ -170,7 +170,13 @@ export class GScoreService {
 
       this.ws.on('error', (err) => {
         if (!this.isTimeoutTerminated) {
-          pluginState.logger.error('[GScore] 连接错误:', err.message);
+          const errorMsg = err.message || '连接失败（可能是目标地址不可达或被拒绝）';
+          const errorCode = (err as any).code || '';
+          if (errorCode) {
+            pluginState.logger.error(`[GScore] 连接错误 [${errorCode}]: ${errorMsg}`);
+          } else {
+            pluginState.logger.error(`[GScore] 连接错误: ${errorMsg}`);
+          }
         }
         if (this.isConnecting) {
           this.isConnecting = false;
@@ -185,7 +191,12 @@ export class GScoreService {
         this.isConnecting = false;
         this.ws = null;
         if (!this.isTimeoutTerminated) {
-          pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reason}`);
+          const reasonStr = reason.toString() || '';
+          if (code === 1006) {
+            pluginState.logger.warn(`[GScore] 连接异常关闭 (1006): ${reasonStr || '目标服务器无响应或连接被拒绝，请检查 gscoreUrl 是否正确'}`);
+          } else {
+            pluginState.logger.warn(`[GScore] 连接关闭: ${code} ${reasonStr}`);
+          }
         }
         this.isTimeoutTerminated = false;
         setImmediate(() => this.scheduleReconnect());
@@ -208,7 +219,6 @@ export class GScoreService {
       this.connectionTimeout = null;
     }
     if (this.ws) {
-      this.ws.removeAllListeners();
       this.ws.close();
       this.ws = null;
     }

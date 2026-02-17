@@ -93,6 +93,22 @@ function checkPermission(event: OB11Message): boolean {
     return role === 'admin' || role === 'owner';
 }
 
+const PERMISSION_DENIED_MSG = '❌ 没有权限，仅授权用户可操作';
+
+/**
+ * 权限检查
+ */
+async function denyIfNoPermission(
+    ctx: NapCatPluginContext,
+    event: OB11Message
+): Promise<boolean> {
+    if (!checkPermission(event)) {
+        await sendReply(ctx, event, PERMISSION_DENIED_MSG);
+        return true;
+    }
+    return false;
+}
+
 // ==================== 消息处理主函数 ====================
 
 /**
@@ -119,7 +135,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         // --- 群开启/关闭命令 ---
         if (rawMessage === `${prefix}群开启` || rawMessage === `${prefix}群启用`) {
             if (!groupId) return void await sendReply(ctx, event, '请在群组中使用此命令');
-            if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+            if (await denyIfNoPermission(ctx, event)) return;
 
             pluginState.updateGroupConfig(String(groupId), { enabled: true });
             await sendReply(ctx, event, '✅ 本群早柚核心适配已开启');
@@ -128,7 +144,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
 
         if (rawMessage === `${prefix}群关闭` || rawMessage === `${prefix}群禁用`) {
             if (!groupId) return void await sendReply(ctx, event, '请在群组中使用此命令');
-            if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+            if (await denyIfNoPermission(ctx, event)) return;
 
             pluginState.updateGroupConfig(String(groupId), { enabled: false });
             await sendReply(ctx, event, '🚫 本群早柚核心适配已关闭');
@@ -138,7 +154,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         // --- 拉黑/取消拉黑命令 ---
         if (rawMessage.startsWith(`${prefix}拉黑`)) {
             if (!groupId) return void await sendReply(ctx, event, '请在群组中使用此命令');
-            if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+            if (await denyIfNoPermission(ctx, event)) return;
 
             const atTargets = extractAtTargets(event);
             if (atTargets.length === 0) {
@@ -169,7 +185,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
 
         if (rawMessage.startsWith(`${prefix}取消拉黑`)) {
             if (!groupId) return void await sendReply(ctx, event, '请在群组中使用此命令');
-            if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+            if (await denyIfNoPermission(ctx, event)) return;
 
             const atTargets = extractAtTargets(event);
             if (atTargets.length === 0) {
@@ -215,13 +231,14 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
 
         switch (subCommand) {
             case 'help': {
+                if (await denyIfNoPermission(ctx, event)) return;
                 const helpText = [
-                    `[= 插件帮助 =]`,
+                    `[= 常用命令 =]`,
                     `${prefix} help - 显示帮助信息`,
                     `${prefix} status - 查看连接器状态`,
                     `${prefix} 重连 - 立即重连GScore服务`,
                     ``,
-                    `[= 管理命令 (前缀: ${prefix}) =]`,
+                    `[= 管理命令 =]`,
                     `${prefix}群开启/群启用 - 开启本群早柚核心`,
                     `${prefix}群关闭/群禁用 - 关闭本群早柚核心`,
                     `${prefix}拉黑 @用户 - 拉黑用户（不转发其消息）`,
@@ -232,6 +249,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
             }
 
             case 'status': {
+                if (await denyIfNoPermission(ctx, event)) return;
                 const { GScoreService } = await import('../services/gscore-service');
                 const gscoreStatus = GScoreService.getInstance().getStatus();
                 const statusMap = {
@@ -253,7 +271,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
 
             case 'reconnect':
             case '重连': {
-                if (!checkPermission(event)) return void await sendReply(ctx, event, '❌ 没有权限，仅授权用户可操作');
+                if (await denyIfNoPermission(ctx, event)) return;
                 const { GScoreService } = await import('../services/gscore-service');
                 const result = await GScoreService.getInstance().manualReconnect();
                 await sendReply(ctx, event, result);
