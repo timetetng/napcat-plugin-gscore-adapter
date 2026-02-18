@@ -109,6 +109,13 @@ async function denyIfNoPermission(
     return false;
 }
 
+/**
+ * 检查是否可以绕过群禁用转发
+ */
+function canBypassGroupDisable(event: OB11Message): boolean {
+    return !!pluginState.config.masterForwardWhenDisabled && checkPermission(event);
+}
+
 // ==================== 消息处理主函数 ====================
 
 /**
@@ -210,8 +217,9 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         if (!pluginState.config.gscoreEnable) {
             // 全局 GScore 未启用，跳过转发
         } else if (messageType === 'group' && groupId) {
-            // 群消息：检查群开关后转发
-            if (pluginState.isGroupEnabled(String(groupId))) {
+            const groupEnabled = pluginState.isGroupEnabled(String(groupId));
+
+            if (groupEnabled || canBypassGroupDisable(event)) {
                 try {
                     const { GScoreService } = await import('../services/gscore-service');
                     await GScoreService.getInstance().forwardMessage(event);

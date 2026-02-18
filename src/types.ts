@@ -35,6 +35,8 @@ export interface PluginConfig {
     blacklist: string[];
     /** 自定义图片外显 */
     customImageSummary?: string;
+    /** 主人正常转发开关，开启后禁用群聊后主人仍可正常转发消息（未配置则管理员/群主正常） */
+    masterForwardWhenDisabled?: boolean;
 }
 
 /**
