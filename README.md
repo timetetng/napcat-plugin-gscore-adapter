@@ -1,6 +1,6 @@
 # 🦊 NapCat早柚核心适配器 (napcat-plugin-gscore-adapter)
 
-这是一个适用于 [NapCat](https://github.com/NapNeko/NapCatQQ) 的 GScore (早柚核心) 适配器插件。它通过 WebSocket 连接 GScore 服务，将 QQ 消息转发给 GScore 处理，并支持丰富的管理功能。
+这是一个适用于 [NapCat](https://github.com/NapNeko/NapCatQQ) 的 [GScore](https://github.com/Genshin-bots/gsuid_core) (早柚核心) 适配器插件。它通过 WebSocket 连接 GScore 服务，将 QQ 消息转发给 GScore 处理，并支持丰富的管理功能。
 
 ## ✨ 主要功能
 
@@ -41,8 +41,8 @@
 
 | 指令 | 描述 | 权限要求 |
 | :--- | :--- | :--- |
-| `#早柚 help` | 查看帮助信息 | 无 |
-| `#早柚 status` | 查看连接状态、运行时长、黑名单人数 | 无 |
+| `#早柚 help` | 查看帮助信息 | 管理员/群主/主人 |
+| `#早柚 status` | 查看连接状态、运行时长、黑名单人数 | 管理员/群主/主人 |
 | `#早柚重连` | 立即尝试重连 GScore 服务 | 管理员/群主/主人 |
 | `#早柚群开启` / `#早柚群启用` | 开启本群 GScore 适配（开始转发消息） | 管理员/群主/主人 |
 | `#早柚群关闭` / `#早柚群禁用` | 关闭本群 GScore 适配（停止转发消息） | 管理员/群主/主人 |
