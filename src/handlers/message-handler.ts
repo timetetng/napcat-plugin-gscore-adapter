@@ -212,15 +212,21 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         } else if (messageType === 'group' && groupId) {
             // 群消息：检查群开关后转发
             if (pluginState.isGroupEnabled(String(groupId))) {
-                import('../services/gscore-service').then(({ GScoreService }) => {
-                    GScoreService.getInstance().forwardMessage(event);
-                });
+                try {
+                    const { GScoreService } = await import('../services/gscore-service');
+                    await GScoreService.getInstance().forwardMessage(event);
+                } catch (err) {
+                    pluginState.logger.error('转发群消息到 GScore 失败:', err);
+                }
             }
         } else if (messageType === 'private') {
             // 私聊消息：直接转发到 GScore
-            import('../services/gscore-service').then(({ GScoreService }) => {
-                GScoreService.getInstance().forwardMessage(event);
-            });
+            try {
+                const { GScoreService } = await import('../services/gscore-service');
+                await GScoreService.getInstance().forwardMessage(event);
+            } catch (err) {
+                pluginState.logger.error('转发私聊消息到 GScore 失败:', err);
+            }
         }
 
         // ==================== 命令处理 ====================
