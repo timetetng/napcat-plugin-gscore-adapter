@@ -248,9 +248,9 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 if (await denyIfNoPermission(ctx, event)) return;
                 const helpText = [
                     `[= 常用命令 =]`,
-                    `${prefix} help - 显示帮助信息`,
-                    `${prefix} status - 查看连接器状态`,
-                    `${prefix} 重连 - 立即重连GScore服务`,
+                    `${prefix}help - 显示帮助信息`,
+                    `${prefix}status - 查看连接器状态`,
+                    `${prefix}重连 - 立即重连GScore服务`,
                     ``,
                     `[= 管理命令 =]`,
                     `${prefix}群开启/群启用 - 开启本群早柚核心`,
