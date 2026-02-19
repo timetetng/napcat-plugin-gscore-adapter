@@ -67,12 +67,13 @@ jobs:
           mkdir -p release
 
           # 复制需要的文件到临时目录
+          cp -r dist/webui release/
           cp dist/index.mjs release/
           cp dist/package.json release/
 
           # 进入临时目录并压缩
           cd release
-          zip -r ../${PLUGIN_NAME}.zip index.mjs package.json
+          zip -r ../${PLUGIN_NAME}.zip index.mjs package.json webui
 
       - name: Verify zip contents
         run: |
