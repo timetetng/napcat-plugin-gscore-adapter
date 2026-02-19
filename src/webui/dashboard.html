@@ -396,8 +396,8 @@
                             <div class="text-xs mb-0.5" style="color: var(--text-secondary)">连接地址</div>
                             <div class="font-mono text-sm" x-text="gscoreStatus.url || '-'"></div>
                         </div>
-                        <div class="text-right px-4 py-2 rounded-lg bg-[var(--primary-light)]">
-                            <div class="text-xs mb-0.5" style="color: var(--text-secondary)">重连次数</div>
+                        <div class="text-right px-4 py-2 rounded-lg bg-[var(--primary-light)] flex items-center gap-2">
+                            <div class="text-xs" style="color: var(--text-secondary)">重连次数</div>
                             <div class="font-mono font-bold text-[var(--primary)]"
                                 x-text="gscoreStatus.reconnectAttempts || 0"></div>
                         </div>
