@@ -13,8 +13,8 @@
  * 插件主配置接口
  */
 export interface PluginConfig {
-    /** 全局开关：是否启用插件功能 */
-    enabled: boolean;
+    /** 全局开关：是否启用转发功能 */
+    gscoreEnable: boolean;
     /** 早柚命令前缀，默认为 #早柚，用于群内快捷命令（如 #早柚群启用） */
     commandPrefix: string;
     /** 主人QQ，设置后仅该用户可用群内命令，留空则默认群主/管理员可用 */
@@ -23,8 +23,6 @@ export interface PluginConfig {
     gscoreUrl: string;
     /** GScore 连接 Token */
     gscoreToken: string;
-    /** GScore 是否启用 */
-    gscoreEnable: boolean;
     /** 重连间隔（毫秒） */
     reconnectInterval: number;
     /** 最大重连次数 */

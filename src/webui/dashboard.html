@@ -514,7 +514,7 @@
 
                 status: { text: '连接中...', online: false, uptime: 0, uptimeFormatted: '-', startTime: null },
                 gscoreStatus: { connected: false, url: '', reconnectAttempts: 0 },
-                config: { enabled: true },
+                config: { gscoreEnable: true },
                 groups: [],
                 groupSearch: '',
                 groupFilter: 'all',
@@ -608,7 +608,7 @@
                             url: data.gscoreUrl || '',
                             reconnectAttempts: data.reconnectAttempts || 0,
                         };
-                        this.config = data.config || { enabled: true };
+                        this.config = data.config || { gscoreEnable: true };
                     } catch (e) {
                         this.status.online = false;
                         this.status.text = '连接断开';

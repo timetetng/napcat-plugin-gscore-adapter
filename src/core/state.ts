@@ -6,7 +6,7 @@
  *
  * 使用方法：
  *   import { pluginState } from '../core/state';
- *   pluginState.config.enabled;       // 读取配置
+ *   pluginState.config.gscoreEnable;  // 读取配置
  *   pluginState.ctx.logger.info(...); // 使用日志
  */
 
@@ -30,13 +30,12 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (!isObject(raw)) return { ...DEFAULT_CONFIG, groupConfigs: {} };
 
     const out: PluginConfig = { ...DEFAULT_CONFIG, groupConfigs: {} };
-
-    if (typeof raw.enabled === 'boolean') out.enabled = raw.enabled;
+  
+    if (typeof raw.gscoreEnable === 'boolean') out.gscoreEnable = raw.gscoreEnable;
     if (typeof raw.commandPrefix === 'string') out.commandPrefix = raw.commandPrefix;
     if (typeof raw.masterQQ === 'string') out.masterQQ = raw.masterQQ;
     if (typeof raw.gscoreUrl === 'string') out.gscoreUrl = raw.gscoreUrl;
     if (typeof raw.gscoreToken === 'string') out.gscoreToken = raw.gscoreToken;
-    if (typeof raw.gscoreEnable === 'boolean') out.gscoreEnable = raw.gscoreEnable;
     if (typeof raw.reconnectInterval === 'number') out.reconnectInterval = raw.reconnectInterval;
     if (typeof raw.maxReconnectAttempts === 'number') out.maxReconnectAttempts = raw.maxReconnectAttempts;
     if (typeof raw.customImageSummary === 'string') out.customImageSummary = raw.customImageSummary;

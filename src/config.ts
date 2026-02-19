@@ -8,13 +8,12 @@ import type { PluginConfig } from './types';
 
 /** 默认配置 */
 export const DEFAULT_CONFIG: PluginConfig = {
-    enabled: true,
+    gscoreEnable: true,
     commandPrefix: '#早柚',
     masterQQ: '',
     groupConfigs: {},
     gscoreUrl: 'ws://localhost:8765',
     gscoreToken: '',
-    gscoreEnable: true,
     reconnectInterval: 5000,
     maxReconnectAttempts: 10,
     blacklist: [],

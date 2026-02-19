@@ -239,7 +239,6 @@ function registerWebUIRoutes(ctx: NapCatPluginContext) {
  */
 export const plugin_onmessage: PluginModule['plugin_onmessage'] = async (ctx, event) => {
     if (event.post_type !== EventType.MESSAGE) return;
-    if (!pluginState.config.enabled) return;
     await handleMessage(ctx, event);
 };
 
