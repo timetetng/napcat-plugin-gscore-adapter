@@ -70,6 +70,51 @@
             background: var(--text-secondary);
         }
 
+        /* 移动端侧边栏遮罩 */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--ease-smooth);
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 侧边栏过渡动画 */
+        .sidebar {
+            transition: transform 0.3s var(--ease-smooth), width 0.3s var(--ease-smooth);
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 50;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-header {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            .main-content {
+                padding: 1rem !important;
+            }
+        }
+
         /* 组件样式 */
         .card {
             background: var(--card-bg);
@@ -289,8 +334,11 @@
 
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- 移动端侧边栏遮罩 -->
+    <div class="sidebar-overlay" :class="sidebarOpen ? 'active' : ''" @click="sidebarOpen = false"></div>
+
     <!-- 侧边栏 -->
-    <aside class="sidebar w-64 flex flex-col flex-shrink-0">
+    <aside class="sidebar w-64 flex flex-col flex-shrink-0" :class="sidebarOpen ? 'open' : ''">
         <div class="h-16 flex items-center px-6 border-b border-[var(--border)]">
             <div
                 class="w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-xl bg-[var(--primary)] text-white">
@@ -301,7 +349,7 @@
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
             <template x-for="item in menu" :key="item.id">
-                <a href="#" @click.prevent="currentTab = item.id" class="sidebar-link"
+                <a href="#" @click.prevent="currentTab = item.id; sidebarOpen = false" class="sidebar-link"
                     :class="currentTab === item.id ? 'active' : ''">
                     <span x-html="item.icon" class="w-5 h-5"></span>
                     <span x-text="item.label"></span>
@@ -320,9 +368,16 @@
 
     <!-- 主内容区 -->
     <main class="flex-1 flex flex-col min-w-0 bg-[var(--bg)]">
-        <header class="main-header h-16 sticky top-0 z-10 px-8 flex items-center justify-between">
-            <h2 class="text-xl font-bold" style="color: var(--text)"
-                x-text="menu.find(m => m.id === currentTab)?.label"></h2>
+        <header class="main-header h-16 sticky top-0 z-10 px-4 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = !sidebarOpen" class="toggle-sidebar-btn lg:hidden" title="打开菜单">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h2 class="text-xl font-bold" style="color: var(--text)"
+                    x-text="menu.find(m => m.id === currentTab)?.label"></h2>
+            </div>
             <a href="https://github.com/xiowo/napcat-plugin-gscore-adapter" target="_blank"
                 class="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -333,7 +388,7 @@
             </a>
         </header>
 
-        <div class="flex-1 overflow-auto p-8 relative">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 relative">
 
             <!-- 运行状态页面 -->
             <div x-show="currentTab === 'dashboard'" x-transition.opacity class="max-w-5xl mx-auto">
@@ -506,6 +561,7 @@
 
         function app() {
             return {
+                sidebarOpen: false,
                 currentTab: 'dashboard',
                 menu: [
                     { id: 'dashboard', label: '运行状态', icon: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>' },
