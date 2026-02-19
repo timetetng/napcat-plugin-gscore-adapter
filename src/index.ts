@@ -51,6 +51,9 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
 
         plugin_config_ui = buildConfigSchema(ctx);
 
+        // 注册 WebUI 路由
+        registerWebUIRoutes(ctx);
+
         // 初始化 GScore 服务
         const { GScoreService } = await import('./services/gscore-service');
         if (pluginState.config.gscoreEnable) {
@@ -62,6 +65,173 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
         ctx.logger.error('插件初始化失败:', error);
     }
 };
+
+/**
+ * 注册 WebUI 路由
+ */
+function registerWebUIRoutes(ctx: NapCatPluginContext) {
+    const base = (ctx as any).router;
+    if (!base) return;
+
+    // 插件信息脚本
+    if (base.get) {
+        base.get('/static/plugin-info.js', (_req: any, res: any) => {
+            try {
+                res.type('application/javascript');
+                res.send(`window.__PLUGIN_NAME__ = ${JSON.stringify(ctx.pluginName)};`);
+            } catch (e) {
+                res.status(500).send('// failed to generate plugin-info');
+            }
+        });
+    }
+
+    // 静态资源目录
+    if (base.static) base.static('/static', 'webui');
+
+    if (!base.get || !base.post) return;
+
+    // 注册扩展页面
+    if (base.page) {
+        base.page({
+            path: 'gscore-dashboard',
+            title: 'GScore 适配器',
+            icon: '🦊',
+            htmlFile: 'webui/dashboard.html',
+            description: '管理 GScore 连接和群组配置'
+        });
+    }
+
+    // 状态接口
+    base.get('/status', async (_req: any, res: any) => {
+        try {
+            const { GScoreService } = await import('./services/gscore-service');
+            const gscoreService = GScoreService.getInstance();
+            const uptime = pluginState.getUptime();
+            res.json({
+                code: 0,
+                data: {
+                    pluginName: pluginState.ctx.pluginName,
+                    uptime,
+                    uptimeFormatted: pluginState.getUptimeFormatted(),
+                    config: pluginState.config,
+                    gscoreConnected: gscoreService.isConnected(),
+                    gscoreUrl: pluginState.config.gscoreUrl,
+                    reconnectAttempts: gscoreService.getReconnectAttempts(),
+                }
+            });
+        } catch (e) {
+            res.json({
+                code: 0,
+                data: {
+                    pluginName: pluginState.ctx.pluginName,
+                    uptime: pluginState.getUptime(),
+                    uptimeFormatted: pluginState.getUptimeFormatted(),
+                    config: pluginState.config,
+                    gscoreConnected: false,
+                    gscoreUrl: pluginState.config.gscoreUrl,
+                    reconnectAttempts: 0,
+                }
+            });
+        }
+    });
+
+    // 群列表接口
+    base.get('/groups', async (_req: any, res: any) => {
+        try {
+            const groups: any[] = await ctx.actions.call(
+                'get_group_list',
+                {},
+                ctx.adapterName,
+                ctx.pluginManager.config
+            );
+            const config = pluginState.config;
+
+            const groupsWithConfig = (groups || []).map((group: any) => {
+                const groupId = String(group.group_id);
+                const groupConfig = config.groupConfigs[groupId] || {};
+                return {
+                    ...group,
+                    enabled: groupConfig.enabled !== false
+                };
+            });
+
+            res.json({ code: 0, data: groupsWithConfig });
+        } catch (e) {
+            ctx.logger.error('获取群列表失败:', e);
+            res.status(500).json({ code: -1, message: String(e) });
+        }
+    });
+
+    // 批量更新群配置接口
+    base.post('/groups/bulk-config', async (req: any, res: any) => {
+        try {
+            let body = req.body;
+            if (!body || Object.keys(body).length === 0) {
+                try {
+                    const raw = await new Promise<string>((resolve) => {
+                        let data = '';
+                        req.on('data', (chunk: any) => data += chunk);
+                        req.on('end', () => resolve(data));
+                    });
+                    if (raw) body = JSON.parse(raw);
+                } catch (e) {
+                    ctx.logger.error('解析批量配置 Body 失败:', e);
+                }
+            }
+
+            const { enabled, groupIds } = body || {};
+            if (typeof enabled !== 'boolean' || !Array.isArray(groupIds)) {
+                return res.status(400).json({ code: -1, message: '参数错误', received: body });
+            }
+
+            const currentGroupConfigs = { ...(pluginState.config.groupConfigs || {}) };
+            for (const groupId of groupIds) {
+                const gid = String(groupId);
+                currentGroupConfigs[gid] = { ...currentGroupConfigs[gid], enabled };
+            }
+
+            pluginState.updateConfig({ groupConfigs: currentGroupConfigs });
+
+            ctx.logger.info(`批量更新群配置完成 | 数量: ${groupIds.length}, enabled=${enabled}`);
+            res.json({ code: 0, message: 'ok' });
+        } catch (err) {
+            ctx.logger.error('批量更新群配置失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
+    // 更新群配置接口
+    base.post('/groups/:id/config', async (req: any, res: any) => {
+        try {
+            const groupId = String(req.params?.id || '');
+            if (!groupId) {
+                return res.status(400).json({ code: -1, message: '缺少群 ID' });
+            }
+
+            let body = req.body;
+            if (!body || Object.keys(body).length === 0) {
+                try {
+                    const raw = await new Promise<string>((resolve) => {
+                        let data = '';
+                        req.on('data', (chunk: any) => data += chunk);
+                        req.on('end', () => resolve(data));
+                    });
+                    if (raw) body = JSON.parse(raw);
+                } catch (e) {
+                    ctx.logger.error(`解析群 ${groupId} 配置 Body 失败:`, e);
+                }
+            }
+
+            const { enabled } = body || {};
+            pluginState.updateGroupConfig(groupId, { enabled: Boolean(enabled) });
+            ctx.logger.info(`群 ${groupId} 配置已更新: enabled=${enabled}`);
+            res.json({ code: 0, message: 'ok' });
+        } catch (err) {
+            ctx.logger.error('更新群配置失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+}
 
 /**
  * 消息处理

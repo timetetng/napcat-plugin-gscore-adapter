@@ -49,6 +49,14 @@ export class GScoreService {
     return 'disconnected';
   }
 
+  public isConnected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  public getReconnectAttempts(): number {
+    return this.reconnectAttempts;
+  }
+
   /**
    * 手动重连命令处理
    */

@@ -17,7 +17,26 @@ const nodeModules = [
 const external: string[] = ['bufferutil', 'utf-8-validate'];
 
 /**
- * 构建后自动生成精简 package.json 的 Vite 插件
+ * 递归复制目录
+ */
+function copyDirRecursive(src: string, dest: string) {
+    if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+    }
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+        const srcPath = resolve(src, entry.name);
+        const destPath = resolve(dest, entry.name);
+        if (entry.isDirectory()) {
+            copyDirRecursive(srcPath, destPath);
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
+}
+
+/**
+ * 构建后自动复制资源的 Vite 插件
  */
 function copyAssetsPlugin() {
     return {
@@ -25,8 +44,17 @@ function copyAssetsPlugin() {
         writeBundle() {
             try {
                 const distDir = resolve(__dirname, 'dist');
-                const pkgPath = resolve(__dirname, 'package.json');
 
+                // 复制 webui 资源
+                const webuiSrc = resolve(__dirname, 'src/webui');
+                const webuiDest = resolve(distDir, 'webui');
+                if (fs.existsSync(webuiSrc)) {
+                    copyDirRecursive(webuiSrc, webuiDest);
+                    console.log('[copy-assets] (o\'v\'o) 已复制 webui 目录');
+                }
+
+                // 生成精简的 package.json（只保留运行时必要字段）
+                const pkgPath = resolve(__dirname, 'package.json');
                 if (fs.existsSync(pkgPath)) {
                     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
                     const distPkg: Record<string, unknown> = {

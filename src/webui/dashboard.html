@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>GScore 适配器 · 控制台</title>
+    <script src="static/plugin-info.js" onerror="console.warn('plugin-info.js 加载失败，将使用 fallback 逻辑')"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#e8b896',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            /* 柔和暖色调主题 */
+            --primary: #e8b896;
+            --primary-light: #f5e6d8;
+            --primary-hover: #f0d4c0;
+            --bg: #fdf9f5;
+            --sidebar-bg: #fff;
+            --card-bg: #fff;
+            --border: #e8d5c4;
+            --border-light: #f0e6dc;
+            --text: #5a4a3a;
+            --text-secondary: #8a7a6a;
+            --shadow: 0 2px 8px rgba(90, 74, 58, 0.06);
+            --shadow-hover: 0 4px 16px rgba(90, 74, 58, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* 组件样式 */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s var(--ease-smooth);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #dcb08a;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--primary-light);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-hover);
+        }
+
+        .input {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+        }
+
+        .sidebar-link {
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-link:hover {
+            background: var(--primary-light);
+            color: var(--text);
+        }
+
+        .sidebar-link.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* 主内容区 */
+        .main-header {
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* 群组项 */
+        .group-item {
+            display: flex;
+            align-items: center;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .group-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* 开关 */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--border);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked+.toggle-slider {
+            background: var(--primary);
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease both;
+        }
+
+        .status-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 14px;
+            pointer-events: auto;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .toast-success {
+            background: #10b981;
+        }
+
+        .toast-error {
+            background: #ef4444;
+        }
+
+        .toast-info {
+            background: var(--primary);
+        }
+    </style>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+
+<body class="h-screen flex overflow-hidden" x-data="app()">
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar w-64 flex flex-col flex-shrink-0">
+        <div class="h-16 flex items-center px-6 border-b border-[var(--border)]">
+            <div
+                class="w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-xl bg-[var(--primary)] text-white">
+                🦊
+            </div>
+            <span class="font-bold text-lg" style="color: var(--text)">GScore 适配器</span>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <template x-for="item in menu" :key="item.id">
+                <a href="#" @click.prevent="currentTab = item.id" class="sidebar-link"
+                    :class="currentTab === item.id ? 'active' : ''">
+                    <span x-html="item.icon" class="w-5 h-5"></span>
+                    <span x-text="item.label"></span>
+                </a>
+            </template>
+        </nav>
+
+        <div class="p-4 border-t border-[var(--border)]">
+            <div class="flex items-center px-4 py-2 rounded-lg bg-[var(--primary-light)]">
+                <div class="w-2 h-2 rounded-full mr-2"
+                    :class="status.online ? 'bg-green-500 status-pulse' : 'bg-red-500'"></div>
+                <span class="text-sm" style="color: var(--text-secondary)" x-text="status.text"></span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 flex flex-col min-w-0 bg-[var(--bg)]">
+        <header class="main-header h-16 sticky top-0 z-10 px-8 flex items-center justify-between">
+            <h2 class="text-xl font-bold" style="color: var(--text)"
+                x-text="menu.find(m => m.id === currentTab)?.label"></h2>
+            <a href="https://github.com/xiowo/napcat-plugin-gscore-adapter" target="_blank"
+                class="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd"
+                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </a>
+        </header>
+
+        <div class="flex-1 overflow-auto p-8 relative">
+
+            <!-- 运行状态页面 -->
+            <div x-show="currentTab === 'dashboard'" x-transition.opacity class="max-w-5xl mx-auto">
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="card p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                            :class="config.gscoreEnable ? 'bg-green-50' : 'bg-gray-50'">
+                            <span x-show="config.gscoreEnable">✅</span>
+                            <span x-show="!config.gscoreEnable">❌</span>
+                        </div>
+                        <div>
+                            <div class="text-xs" style="color: var(--text-secondary)">GScore 适配</div>
+                            <div class="font-bold" :class="config.gscoreEnable ? 'text-green-600' : 'text-gray-500'"
+                                x-text="config.gscoreEnable ? '已启用' : '已关闭'"></div>
+                        </div>
+                    </div>
+                    <div class="card p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-blue-50">⏰</div>
+                        <div>
+                            <div class="text-xs" style="color: var(--text-secondary)">运行时间</div>
+                            <div class="font-bold font-mono" x-text="status.uptimeFormatted || '-'"></div>
+                        </div>
+                    </div>
+                    <div class="card p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                            :class="gscoreStatus.connected ? 'bg-green-50' : 'bg-red-50'">🦊</div>
+                        <div>
+                            <div class="text-xs" style="color: var(--text-secondary)">GScore</div>
+                            <div class="font-bold" :class="gscoreStatus.connected ? 'text-green-600' : 'text-red-500'"
+                                x-text="gscoreStatus.connected ? '已连接' : '未连接'"></div>
+                        </div>
+                    </div>
+                    <div class="card p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-purple-50">
+                            👨‍👩‍👧‍👦</div>
+                        <div>
+                            <div class="text-xs" style="color: var(--text-secondary)">群组</div>
+                            <div class="font-bold text-[var(--primary)]">
+                                <span x-text="groups.filter(g => g.enabled).length"></span>/<span
+                                    x-text="groups.length"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GScore 连接详情 -->
+                <div class="card">
+                    <div class="px-5 py-4 border-b border-[var(--border)] flex justify-between items-center">
+                        <h3 class="font-bold" style="color: var(--text)">GScore 连接状态</h3>
+                        <span class="text-xs px-2 py-1 rounded-full"
+                            :class="gscoreStatus.connected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'"
+                            x-text="gscoreStatus.connected ? '已连接' : '未连接'"></span>
+                    </div>
+                    <div class="p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--primary-light)]">
+                            🦊</div>
+                        <div class="flex-1">
+                            <div class="text-xs mb-0.5" style="color: var(--text-secondary)">连接地址</div>
+                            <div class="font-mono text-sm" x-text="gscoreStatus.url || '-'"></div>
+                        </div>
+                        <div class="text-right px-4 py-2 rounded-lg bg-[var(--primary-light)]">
+                            <div class="text-xs mb-0.5" style="color: var(--text-secondary)">重连次数</div>
+                            <div class="font-mono font-bold text-[var(--primary)]"
+                                x-text="gscoreStatus.reconnectAttempts || 0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 群组管理页面 -->
+            <div x-show="currentTab === 'groups'" x-transition.opacity class="max-w-5xl mx-auto space-y-4">
+                <!-- 操作栏 -->
+                <div class="card p-4 flex justify-between items-center animate-fade-in">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-[var(--primary-light)]">
+                            👨‍👩‍👧‍👦</div>
+                        <div>
+                            <h3 class="font-bold" style="color: var(--text)">群组管理</h3>
+                            <p class="text-xs" style="color: var(--text-secondary)">已加载 <span
+                                    x-text="groups.length"></span> 个群组</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @click="batchUpdate(true)" class="btn text-sm"
+                            style="background: #dcfce7; color: #166534;">✓ 全部开启</button>
+                        <button @click="batchUpdate(false)" class="btn text-sm"
+                            style="background: #fee2e2; color: #991b1b;">✕ 全部关闭</button>
+                    </div>
+                </div>
+
+                <!-- 搜索栏 -->
+                <div class="card p-4 flex items-center gap-3">
+                    <div class="flex-1 relative">
+                        <input type="text" x-model="groupSearch" placeholder="搜索群组..." class="input w-full pl-9">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2">🔍</span>
+                    </div>
+                    <select x-model="groupFilter" class="input">
+                        <option value="all">全部</option>
+                        <option value="enabled">已启用</option>
+                        <option value="disabled">已禁用</option>
+                    </select>
+                </div>
+
+                <!-- 群组列表 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <template x-for="(group, index) in filteredGroups" :key="group.group_id">
+                        <div class="group-item animate-fade-in" :style="`animation-delay: ${index * 50}ms`">
+                            <div class="flex items-center space-x-3 overflow-hidden flex-1">
+                                <img :src="`http://p.qlogo.cn/gh/${group.group_id}/${group.group_id}/100/`"
+                                    :alt="group.group_name" class="w-10 h-10 rounded-lg flex-shrink-0 object-cover"
+                                    @error="$el.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%236366f1%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2250%%22 y=%2255%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2216%22 font-weight=%22bold%22>' + group.group_name.slice(0,1) + '</text></svg>'">
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold truncate" x-text="group.group_name"></div>
+                                    <div class="text-xs text-slate-400" x-text="group.group_id"></div>
+                                </div>
+                            </div>
+                            <label class="toggle-switch ml-3">
+                                <input type="checkbox" :checked="group.enabled" @change="toggleGroup(group)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        function resolvePluginName() {
+            if (window.__PLUGIN_NAME__) return window.__PLUGIN_NAME__;
+            try {
+                if (window.parent && window.parent.__PLUGIN_NAME__) return window.parent.__PLUGIN_NAME__;
+            } catch (e) { }
+            const pluginMatch = location.pathname.match(/\/plugin\/([^\/]+)/);
+            if (pluginMatch) return pluginMatch[1];
+            const extMatch = location.pathname.match(/\/ext\/([^\/]+)/);
+            if (extMatch) return extMatch[1];
+            return 'napcat-plugin-gscore-adapter';
+        }
+
+        const PLUGIN_NAME = resolvePluginName();
+        const API_BASE = `/api/Plugin/ext/${PLUGIN_NAME}`;
+
+        function getToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('webui_token') || localStorage.getItem('token') || '';
+        }
+
+        function authHeaders(h = {}) {
+            const token = getToken();
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
+
+        function app() {
+            return {
+                currentTab: 'dashboard',
+                menu: [
+                    { id: 'dashboard', label: '运行状态', icon: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>' },
+                    { id: 'groups', label: '群组管理', icon: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>' },
+                ],
+
+                status: { text: '连接中...', online: false, uptime: 0, uptimeFormatted: '-', startTime: null },
+                gscoreStatus: { connected: false, url: '', reconnectAttempts: 0 },
+                config: { enabled: true },
+                groups: [],
+                groupSearch: '',
+                groupFilter: 'all',
+                uptimeTimer: null,
+
+                get filteredGroups() {
+                    let result = this.groups;
+                    if (this.groupSearch) {
+                        const search = this.groupSearch.toLowerCase();
+                        result = result.filter(g =>
+                            g.group_name.toLowerCase().includes(search) ||
+                            g.group_id.toString().includes(search)
+                        );
+                    }
+                    if (this.groupFilter === 'enabled') {
+                        result = result.filter(g => g.enabled);
+                    } else if (this.groupFilter === 'disabled') {
+                        result = result.filter(g => !g.enabled);
+                    }
+                    return result;
+                },
+
+                init() {
+                    this.fetchStatus();
+                    this.fetchGroups();
+                    setInterval(() => this.fetchStatus(), 30000);
+                    this.uptimeTimer = setInterval(() => this.updateLocalUptime(), 1000);
+                },
+
+                formatUptime(seconds) {
+                    if (!seconds || seconds < 0) return '-';
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+
+                    const parts = [];
+                    if (days > 0) parts.push(`${days}天`);
+                    if (hours > 0) parts.push(`${hours}小时`);
+                    if (minutes > 0) parts.push(`${minutes}分`);
+                    parts.push(`${secs}秒`);
+
+                    return parts.join(' ');
+                },
+
+                updateLocalUptime() {
+                    if (this.status.startTime && this.status.online) {
+                        const elapsed = Math.floor((Date.now() - this.status.startTime) / 1000);
+                        this.status.uptimeFormatted = this.formatUptime(elapsed);
+                    }
+                },
+
+                async api(path, method = 'GET', body = null) {
+                    const url = API_BASE + path;
+                    const opts = {
+                        method,
+                        headers: authHeaders({
+                            'Content-Type': 'application/json'
+                        })
+                    };
+                    if (method === 'GET') delete opts.headers['Content-Type'];
+
+                    if (body) {
+                        opts.body = JSON.stringify(body);
+                    }
+
+                    const res = await fetch(url, opts);
+                    const json = await res.json();
+
+                    if (res.status >= 400) {
+                        throw new Error(json.message || 'Request failed');
+                    }
+
+                    return json.data !== undefined ? json.data : json;
+                },
+
+                async fetchStatus() {
+                    try {
+                        const data = await this.api('/status');
+                        const uptimeMs = data.uptime || 0;
+                        const uptimeSeconds = Math.floor(uptimeMs / 1000);
+                        const startTime = Date.now() - uptimeMs;
+                        this.status = {
+                            online: true,
+                            text: '运行中',
+                            startTime: startTime,
+                            uptimeFormatted: this.formatUptime(uptimeSeconds),
+                        };
+                        this.gscoreStatus = {
+                            connected: data.gscoreConnected || false,
+                            url: data.gscoreUrl || '',
+                            reconnectAttempts: data.reconnectAttempts || 0,
+                        };
+                        this.config = data.config || { enabled: true };
+                    } catch (e) {
+                        this.status.online = false;
+                        this.status.text = '连接断开';
+                        this.status.startTime = null;
+                        this.status.uptimeFormatted = '-';
+                    }
+                },
+
+                async fetchGroups() {
+                    try {
+                        this.groups = await this.api('/groups');
+                    } catch (e) {
+                        console.error('Failed to load groups');
+                    }
+                },
+
+                async toggleGroup(group) {
+                    group.enabled = !group.enabled;
+                    try {
+                        await this.api(`/groups/${group.group_id}/config`, 'POST', { enabled: group.enabled });
+                        showToast(`群组 ${group.group_name} 已${group.enabled ? '启用' : '禁用'}`, 'success');
+                    } catch (e) {
+                        group.enabled = !group.enabled;
+                        showToast('更新群配置失败: ' + e.message, 'error');
+                    }
+                },
+
+                batchState: { pending: false, enabled: false, timer: null },
+
+                async batchUpdate(enabled) {
+                    if (!this.batchState.pending || this.batchState.enabled !== enabled) {
+                        if (this.batchState.timer) {
+                            clearTimeout(this.batchState.timer);
+                        }
+                        this.batchState = { pending: true, enabled, timer: null };
+                        showToast(`再次点击确认${enabled ? '开启' : '关闭'}所有群组`, 'info');
+                        this.batchState.timer = setTimeout(() => {
+                            this.batchState = { pending: false, enabled: false, timer: null };
+                        }, 3000);
+                        return;
+                    }
+
+                    if (this.batchState.timer) {
+                        clearTimeout(this.batchState.timer);
+                    }
+                    this.batchState = { pending: false, enabled: false, timer: null };
+
+                    const groupIds = this.groups.map(g => g.group_id);
+                    try {
+                        await this.api('/groups/bulk-config', 'POST', { enabled, groupIds });
+                        this.groups.forEach(g => g.enabled = enabled);
+                        showToast(`已${enabled ? '开启' : '关闭'}所有群组`, 'success');
+                    } catch (e) {
+                        showToast('批量更新失败: ' + e.message, 'error');
+                    }
+                },
+            };
+        }
+    </script>
+</body>
+
+</html>
