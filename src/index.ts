@@ -231,6 +231,37 @@ function registerWebUIRoutes(ctx: NapCatPluginContext) {
             res.status(500).json({ code: -1, message: String(err) });
         }
     });
+
+    // 彩蛋配置保存接口
+    base.post('/secret-config', async (req: any, res: any) => {
+        try {
+            let body = req.body;
+            if (!body || Object.keys(body).length === 0) {
+                try {
+                    const raw = await new Promise<string>((resolve) => {
+                        let data = '';
+                        req.on('data', (chunk: any) => data += chunk);
+                        req.on('end', () => resolve(data));
+                    });
+                    if (raw) body = JSON.parse(raw);
+                } catch (e) {
+                    ctx.logger.error('解析彩蛋配置 Body 失败:', e);
+                }
+            }
+
+            const { customForwardInfo, customForwardQQ, customForwardName } = body || {};
+            pluginState.updateConfig({
+                customForwardInfo: Boolean(customForwardInfo),
+                customForwardQQ: String(customForwardQQ || ''),
+                customForwardName: String(customForwardName || ''),
+            });
+            ctx.logger.info('彩蛋配置已更新');
+            res.json({ code: 0, message: 'ok' });
+        } catch (err) {
+            ctx.logger.error('更新彩蛋配置失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
 }
 
 /**

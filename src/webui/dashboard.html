@@ -24,9 +24,18 @@
             display: none !important;
         }
 
+        /* 禁止文本选中 */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
         :root {
             --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
             --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
             /* 柔和暖色调主题 */
             --primary: #e8b896;
             --primary-light: #f5e6d8;
@@ -326,6 +335,84 @@
         .toast-info {
             background: var(--primary);
         }
+
+        /* 秘密面板动画 */
+        .secret-panel {
+            transform-origin: top center;
+        }
+
+        .secret-panel-enter {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+        }
+
+        .secret-panel-enter-active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            transition: all 0.5s var(--ease-bounce);
+        }
+
+        .secret-panel-leave {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .secret-panel-leave-active {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+            transition: all 0.3s var(--ease-smooth);
+        }
+
+        /* 星星闪烁动画 */
+        @keyframes starPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        .star-pulse {
+            animation: starPulse 2s ease-in-out infinite;
+        }
+
+        /* 卡片入场动画 */
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-up {
+            animation: slideUpFade 0.6s var(--ease-smooth) forwards;
+        }
+
+        .animate-slide-up-delay-1 {
+            animation: slideUpFade 0.6s var(--ease-smooth) 0.1s forwards;
+            opacity: 0;
+        }
+
+        .animate-slide-up-delay-2 {
+            animation: slideUpFade 0.6s var(--ease-smooth) 0.2s forwards;
+            opacity: 0;
+        }
+
+        .animate-slide-up-delay-3 {
+            animation: slideUpFade 0.6s var(--ease-smooth) 0.3s forwards;
+            opacity: 0;
+        }
     </style>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -334,17 +421,51 @@
 
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- 自定义确认对话框遮罩 -->
+    <div x-show="showConfirmDialog" x-cloak class="fixed inset-0 z-50 flex items-center justify-center"
+        style="background: rgba(0, 0, 0, 0.5);">
+        <div x-show="showConfirmDialog" x-cloak x-transition:enter="secret-panel-enter"
+            x-transition:enter-start="secret-panel-enter" x-transition:enter-end="secret-panel-enter-active"
+            x-transition:leave="secret-panel-leave" x-transition:leave-start="secret-panel-leave"
+            x-transition:leave-end="secret-panel-leave-active" class="card max-w-md w-full mx-4 secret-panel">
+            <div class="px-5 py-4 border-b border-[var(--border)]">
+                <h3 class="font-bold text-lg" style="color: var(--text)">✨ 确认一下</h3>
+            </div>
+            <div class="p-5">
+                <div class="flex items-start gap-3 mb-4">
+                    <span class="text-4xl star-pulse">⭐</span>
+                    <div class="flex-1">
+                        <p class="text-base leading-relaxed" style="color: var(--text);" x-text="confirmDialogMessage">
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button @click="handleConfirmCancel" class="btn btn-secondary transition-all hover:scale-105">
+                        还没去呢
+                    </button>
+                    <button @click="handleConfirmOk" class="btn btn-primary transition-all hover:scale-105">
+                        已点星星！
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 移动端侧边栏遮罩 -->
     <div class="sidebar-overlay" :class="sidebarOpen ? 'active' : ''" @click="sidebarOpen = false"></div>
 
     <!-- 侧边栏 -->
     <aside class="sidebar w-64 flex flex-col flex-shrink-0" :class="sidebarOpen ? 'open' : ''">
-        <div class="h-16 flex items-center px-6 border-b border-[var(--border)]">
-            <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-xl bg-[var(--primary)] text-white">
+        <div class="h-16 flex items-center px-6 border-b border-[var(--border)] cursor-pointer transition-all hover:bg-[var(--primary-light)] no-select"
+            :class="clickCount > 0 ? 'bg-[var(--primary-light)]' : ''" @click="handleTitleClick">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-xl bg-[var(--primary)] text-white transition-transform"
+                :style="clickCount > 0 ? `transform: scale(${1 + clickCount * 0.05})` : ''">
                 🦊
             </div>
-            <span class="font-bold text-lg" style="color: var(--text)">GScore 适配器</span>
+            <span class="font-bold text-lg transition-all"
+                :style="clickCount > 0 ? `color: var(--primary); transform: scale(${1 + clickCount * 0.02})` : 'color: var(--text)'"
+                x-text="'GScore 适配器' + (clickCount > 0 ? ' ' + '!'.repeat(clickCount) : '')">
+            </span>
         </div>
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -390,8 +511,83 @@
 
         <div class="flex-1 overflow-auto p-4 lg:p-8 relative">
 
+            <!-- 彩蛋二级隐藏界面 -->
+            <div x-show="showSecretPanel" x-cloak x-transition:enter="secret-panel-enter"
+                x-transition:enter-start="secret-panel-enter" x-transition:enter-end="secret-panel-enter-active"
+                x-transition:leave="secret-panel-leave" x-transition:leave-start="secret-panel-leave"
+                x-transition:leave-end="secret-panel-leave-active" class="max-w-3xl mx-auto secret-panel">
+                <div class="card">
+                    <div
+                        class="px-5 py-4 border-b border-[var(--border)] flex justify-between items-center animate-slide-up">
+                        <h3 class="font-bold" style="color: var(--text)">✨ 隐藏功能</h3>
+                        <button @click="showSecretPanel = false" class="btn btn-secondary text-sm">关闭</button>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- 星星提示 -->
+                        <div class="p-4 rounded-lg animate-slide-up-delay-1"
+                            style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="text-3xl star-pulse">⭐</span>
+                                <div>
+                                    <div class="font-bold" style="color: #92400e;">喜欢这个插件吗？</div>
+                                    <div class="text-sm" style="color: #b45309;">去 GitHub 给项目点个星星吧！</div>
+                                </div>
+                            </div>
+                            <a href="https://github.com/xiowo/napcat-plugin-gscore-adapter" target="_blank"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                                style="background: #92400e; color: white;">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd"
+                                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                前往 GitHub
+                            </a>
+                        </div>
+
+                        <!-- 合并转发配置 -->
+                        <div class="space-y-4 animate-slide-up-delay-2">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium" style="color: var(--text)">自定义合并转发信息</div>
+                                    <div class="text-xs" style="color: var(--text-secondary)">开启后可以自定义合并转发的 QQ 号和昵称
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" x-model="secretConfig.customForwardInfo">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div x-show="secretConfig.customForwardInfo" x-transition.opacity
+                                class="space-y-3 p-4 rounded-lg" style="background: var(--primary-light);">
+                                <div>
+                                    <label class="block text-sm mb-1" style="color: var(--text)">自定义 QQ 号</label>
+                                    <input type="text" x-model="secretConfig.customForwardQQ"
+                                        placeholder="留空则使用机器人自身 QQ 号" class="input w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm mb-1" style="color: var(--text)">自定义昵称</label>
+                                    <input type="text" x-model="secretConfig.customForwardName"
+                                        placeholder="留空则使用机器人自身昵称" class="input w-full">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 保存按钮 -->
+                        <div
+                            class="flex justify-end gap-3 pt-4 border-t border-[var(--border)] animate-slide-up-delay-3">
+                            <button @click="resetSecretConfig"
+                                class="btn btn-secondary transition-all hover:scale-105">重置</button>
+                            <button @click="saveSecretConfig"
+                                class="btn btn-primary transition-all hover:scale-105">保存配置</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 运行状态页面 -->
-            <div x-show="currentTab === 'dashboard'" x-transition.opacity class="max-w-5xl mx-auto">
+            <div x-show="currentTab === 'dashboard' && !showSecretPanel" x-transition.opacity class="max-w-5xl mx-auto">
                 <!-- 统计卡片 -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="card p-4 flex items-center gap-3">
@@ -461,7 +657,8 @@
             </div>
 
             <!-- 群组管理页面 -->
-            <div x-show="currentTab === 'groups'" x-transition.opacity class="max-w-5xl mx-auto space-y-4">
+            <div x-show="currentTab === 'groups' && !showSecretPanel" x-transition.opacity
+                class="max-w-5xl mx-auto space-y-4">
                 <!-- 操作栏 -->
                 <div class="card p-4 flex justify-between items-center animate-fade-in">
                     <div class="flex items-center gap-3">
@@ -575,6 +772,17 @@
                 groupSearch: '',
                 groupFilter: 'all',
                 uptimeTimer: null,
+                showSecretPanel: false,
+                clickCount: 0,
+                clickTimer: null,
+                secretConfig: {
+                    customForwardInfo: false,
+                    customForwardQQ: '',
+                    customForwardName: '',
+                },
+                showConfirmDialog: false,
+                confirmDialogMessage: '',
+                confirmCallback: null,
 
                 get filteredGroups() {
                     let result = this.groups;
@@ -598,6 +806,65 @@
                     this.fetchGroups();
                     setInterval(() => this.fetchStatus(), 30000);
                     this.uptimeTimer = setInterval(() => this.updateLocalUptime(), 1000);
+                },
+
+                handleTitleClick() {
+                    this.clickCount++;
+                    if (this.clickTimer) clearTimeout(this.clickTimer);
+
+                    if (this.clickCount >= 5) {
+                        this.showSecretPanel = true;
+                        this.clickCount = 0;
+                        this.loadSecretConfig();
+                        return;
+                    }
+
+                    this.clickTimer = setTimeout(() => {
+                        this.clickCount = 0;
+                    }, 1000);
+                },
+
+                loadSecretConfig() {
+                    this.secretConfig = {
+                        customForwardInfo: this.config.customForwardInfo || false,
+                        customForwardQQ: this.config.customForwardQQ || '',
+                        customForwardName: this.config.customForwardName || '',
+                    };
+                },
+
+                resetSecretConfig() {
+                    this.loadSecretConfig();
+                    showToast('已重置', 'info');
+                },
+
+                async saveSecretConfig() {
+                    this.confirmDialogMessage = '确认给狐狐的项目仓库点小星星了吗？没点星星的都是大坏蛋！';
+                    this.confirmCallback = async () => {
+                        try {
+                            await this.api('/secret-config', 'POST', this.secretConfig);
+                            this.config.customForwardInfo = this.secretConfig.customForwardInfo;
+                            this.config.customForwardQQ = this.secretConfig.customForwardQQ;
+                            this.config.customForwardName = this.secretConfig.customForwardName;
+                            showToast('配置已保存', 'success');
+                        } catch (e) {
+                            showToast('保存失败: ' + e.message, 'error');
+                        }
+                    };
+                    this.showConfirmDialog = true;
+                },
+
+                handleConfirmOk() {
+                    this.showConfirmDialog = false;
+                    if (this.confirmCallback) {
+                        this.confirmCallback();
+                        this.confirmCallback = null;
+                    }
+                },
+
+                handleConfirmCancel() {
+                    this.showConfirmDialog = false;
+                    this.confirmCallback = null;
+                    showToast('请先去 GitHub 给项目点个小星星吧！', 'info');
                 },
 
                 formatUptime(seconds) {

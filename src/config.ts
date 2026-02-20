@@ -19,6 +19,9 @@ export const DEFAULT_CONFIG: PluginConfig = {
     blacklist: [],
     customImageSummary: '',
     masterForwardWhenDisabled: false,
+    customForwardInfo: false,
+    customForwardQQ: '',
+    customForwardName: '',
 };
 
 /**

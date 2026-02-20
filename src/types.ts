@@ -35,6 +35,12 @@ export interface PluginConfig {
     customImageSummary?: string;
     /** 主人正常转发开关，开启后禁用群聊后主人仍可正常转发消息（未配置则管理员/群主正常） */
     masterForwardWhenDisabled?: boolean;
+    /** 彩蛋配置：是否启用自定义合并转发信息 */
+    customForwardInfo?: boolean;
+    /** 彩蛋配置：自定义合并转发 QQ 号（不填则使用机器人自身） */
+    customForwardQQ?: string;
+    /** 彩蛋配置：自定义合并转发昵称（不填则使用机器人自身） */
+    customForwardName?: string;
 }
 
 /**
