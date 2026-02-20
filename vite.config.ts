@@ -8,6 +8,8 @@ import { napcatHmrPlugin } from 'napcat-plugin-debug-cli/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
+
 const nodeModules = [
     ...builtinModules,
     ...builtinModules.map((m) => `node:${m}`),
@@ -86,6 +88,9 @@ function copyAssetsPlugin() {
 }
 
 export default defineConfig({
+    define: {
+        '__PLUGIN_VERSION__': JSON.stringify(pkg.version),
+    },
     resolve: {
         conditions: ['node', 'default'],
     },

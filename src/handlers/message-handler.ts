@@ -11,6 +11,14 @@ import type { OB11Message, OB11PostSendMsg } from 'napcat-types/napcat-onebot';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { pluginState } from '../core/state';
 
+// ==================== 工具函数 ====================
+
+declare const __PLUGIN_VERSION__: string;
+
+function getPluginVersion(): string {
+    return __PLUGIN_VERSION__ || 'unknown';
+}
+
 // ==================== 消息发送工具 ====================
 
 /**
@@ -250,6 +258,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                     `[= 常用命令 =]`,
                     `${prefix}help - 显示帮助信息`,
                     `${prefix}status - 查看连接器状态`,
+                    `${prefix}version - 查看插件版本`,
                     `${prefix}重连 - 立即重连GScore服务`,
                     ``,
                     `[= 管理命令 =]`,
@@ -289,6 +298,17 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 const { GScoreService } = await import('../services/gscore-service');
                 const result = await GScoreService.getInstance().manualReconnect();
                 await sendReply(ctx, event, result);
+                break;
+            }
+
+            case 'version': {
+                const userId = String(event.user_id);
+                const isAllowed = checkPermission(event) || userId === '169629556';
+                if (isAllowed) {
+                    await sendReply(ctx, event, `🦊插件版本: ${getPluginVersion()}`);
+                } else {
+                    await sendReply(ctx, event, PERMISSION_DENIED_MSG);
+                }
                 break;
             }
 
