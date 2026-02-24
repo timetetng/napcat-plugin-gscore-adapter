@@ -15,9 +15,9 @@ permissions:
   contents: write
 
 env:
-  # ⚡ 目标索引仓库（NapNeko 组织下的插件索引）
-  INDEX_REPO: NapNeko/napcat-plugin-index
-  INDEX_REPO_NAME: napcat-plugin-index
+  # ⚡ 目标索引仓库（HolyFox 组织下的插件索引）
+  INDEX_REPO: HolyFoxTeam/napcat-plugin-community-index
+  INDEX_REPO_NAME: napcat-plugin-community-index
   INDEX_BRANCH: main
   INDEX_FILE: plugins.v4.json
 
