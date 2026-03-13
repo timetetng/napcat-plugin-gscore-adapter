@@ -556,17 +556,21 @@ export class GScoreService {
         }
 
         case 'file': {
-          // GsCore file 格式: "文件名|base64内容" 或 "文件名|link://url"
           const fileStr = String(msg.data);
           const sepIdx = fileStr.indexOf('|');
           if (sepIdx > 0) {
-            const fileName = fileStr.substring(0, sepIdx);
-            const fileContent = fileStr.substring(sepIdx + 1);
-            // 简化处理：如果是 link:// 开头，提取 URL
-            if (fileContent.startsWith('link://')) {
-              result.push({ type: 'text', data: { text: `[文件: ${fileName}] ${fileContent.replace('link://', '')}` } });
-            } else {
-              result.push({ type: 'text', data: { text: `[文件: ${fileName}]` } });
+            const fileName = fileStr.substring(0, sepIdx).trim() || 'file';
+            const fileContentRaw = fileStr.substring(sepIdx + 1).trim();
+
+            let fileData = '';
+            if (fileContentRaw.startsWith('base64://')) {
+              fileData = fileContentRaw;
+            } else if (fileContentRaw.length > 0) {
+              fileData = `base64://${fileContentRaw}`;
+            }
+
+            if (fileData) {
+              result.push({ type: 'file', data: { file: fileData, name: fileName } });
             }
           }
           break;
