@@ -184,6 +184,21 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
             return;
         }
 
+        // --- 上报自身消息开关 ---
+        if (rawMessage === `${prefix}开启上报`) {
+            if (await denyIfNoPermission(ctx, event)) return;
+            pluginState.updateConfig({ forwardSelfMessage: true });
+            await sendReply(ctx, event, '✅ 已开启上报自身消息');
+            return;
+        }
+
+        if (rawMessage === `${prefix}关闭上报`) {
+            if (await denyIfNoPermission(ctx, event)) return;
+            pluginState.updateConfig({ forwardSelfMessage: false });
+            await sendReply(ctx, event, '🚫 已关闭上报自身消息');
+            return;
+        }
+
         // --- 拉黑/取消拉黑命令 ---
         if (rawMessage.startsWith(`${prefix}拉黑`)) {
             if (!groupId) return void await sendReply(ctx, event, '请在群组中使用此命令');
@@ -286,6 +301,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                     `[= 管理命令 =]`,
                     `${prefix}群开启/群启用 - 开启本群早柚核心`,
                     `${prefix}群关闭/群禁用 - 关闭本群早柚核心`,
+                    `${prefix}开启/关闭上报 - 开启/关闭上报自身消息`,
                     `${prefix}拉黑 @用户 - 拉黑用户（不转发其消息）`,
                     `${prefix}取消拉黑 @用户 - 取消拉黑用户`,
                 ].join('\n');
@@ -304,10 +320,12 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 };
 
                 const blacklistCount = pluginState.config.blacklist.length;
+                const forwardSelfStatus = pluginState.config.forwardSelfMessage ? '✅ 已开启' : '❌ 未开启';
                 const statusText = [
                     `[= 插件状态 =]`,
                     `运行时长: ${pluginState.getUptimeFormatted()}`,
                     `GScore: ${statusMap[gscoreStatus]}`,
+                    `上报自身消息: ${forwardSelfStatus}`,
                     `黑名单人数: ${blacklistCount}`,
                 ].join('\n');
                 await sendReply(ctx, event, statusText);
