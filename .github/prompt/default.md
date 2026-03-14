@@ -9,4 +9,5 @@
 2. 解压到 NapCat 的 `plugins` 目录
 3. 重启 NapCat
 
-> 💡 你也可以在 **NapCat WebUI 中直接安装插件**。
+> ⚠️ 从别的框架迁移的请检查 **早柚核心webui-数据库管理-订阅管理**中相关订阅中的**WS机器人ID**是否为**napcat-qq号格式**，不是请手动更改为**napcat-botQQ号**，避免自动推送出现问题
+
