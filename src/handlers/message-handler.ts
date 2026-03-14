@@ -117,7 +117,9 @@ async function denyIfNoPermission(
     event: OB11Message
 ): Promise<boolean> {
     if (!checkPermission(event)) {
-        await sendReply(ctx, event, getPermissionDeniedMessage(event));
+        if (!pluginState.config.silentNoPermission) {
+            await sendReply(ctx, event, getPermissionDeniedMessage(event));
+        }
         return true;
     }
     return false;
@@ -312,7 +314,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 const isAllowed = checkPermission(event) || userId === '169629556';
                 if (isAllowed) {
                     await sendReply(ctx, event, `🦊插件版本: ${getPluginVersion()}`);
-                } else {
+                } else if (!pluginState.config.silentNoPermission) {
                     await sendReply(ctx, event, getPermissionDeniedMessage(event));
                 }
                 break;

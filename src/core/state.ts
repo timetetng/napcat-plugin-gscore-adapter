@@ -40,6 +40,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.maxReconnectAttempts === 'number') out.maxReconnectAttempts = raw.maxReconnectAttempts;
     if (typeof raw.customImageSummary === 'string') out.customImageSummary = raw.customImageSummary;
     if (typeof raw.masterForwardWhenDisabled === 'boolean') out.masterForwardWhenDisabled = raw.masterForwardWhenDisabled;
+    if (typeof raw.silentNoPermission === 'boolean') out.silentNoPermission = raw.silentNoPermission;
 
     // 黑名单清洗
     if (Array.isArray(raw.blacklist)) {
