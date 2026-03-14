@@ -9,6 +9,7 @@ import type { PluginConfig } from './types';
 /** 默认配置 */
 export const DEFAULT_CONFIG: PluginConfig = {
     gscoreEnable: true,
+    forwardSelfMessage: false,
     commandPrefix: '#早柚',
     masterQQ: '',
     groupConfigs: {},
@@ -51,6 +52,7 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         // GScore 配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">GScore 连接配置</div>'),
         ctx.NapCatConfig.boolean('gscoreEnable', '启用 GScore 适配', true, '是否开启 GScore 消息转发'),
+        ctx.NapCatConfig.boolean('forwardSelfMessage', '上报自身消息', false, '开启后转发机器人自己发送的消息（不懂的别开）'),
         ctx.NapCatConfig.text('gscoreUrl', '连接地址', 'ws://localhost:8765', 'GScore WebSocket 地址 (ws://...)'),
         ctx.NapCatConfig.html('<div style="font-size: 12px; color: #f59e0b; margin-top: -5px; margin-bottom: 10px;">⚠️ Docker 环境下请勿使用 localhost/127.0.0.1，请使用宿主机 IP ，双容器同自定义网络可填写容器名使用容器间DNS解析（默认的bridge网络不支持）</div>'),
         ctx.NapCatConfig.text('gscoreToken', '连接 Token', '', '连接鉴权 Token (选填)'),

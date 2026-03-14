@@ -269,8 +269,18 @@ function registerWebUIRoutes(ctx: NapCatPluginContext) {
  * 收到事件时调用，仅处理消息事件
  */
 export const plugin_onmessage: PluginModule['plugin_onmessage'] = async (ctx, event) => {
-    if (event.post_type !== EventType.MESSAGE) return;
-    await handleMessage(ctx, event);
+    const postType = (event as any).post_type;
+    const isMessage = postType === EventType.MESSAGE;
+    const isMessageSent = postType === 'message_sent' || postType === (EventType as any).MESSAGE_SENT;
+
+    if (!isMessage && !isMessageSent) return;
+
+    if (isMessageSent && !pluginState.config.forwardSelfMessage) {
+        ctx.logger.debug('已忽略机器人自身消息事件（未开启上报自身消息）');
+        return;
+    }
+
+    await handleMessage(ctx, event as any);
 };
 
 /**

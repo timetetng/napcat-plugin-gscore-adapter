@@ -15,6 +15,8 @@
 export interface PluginConfig {
     /** 全局开关：是否启用转发功能 */
     gscoreEnable: boolean;
+    /** 是否上报/转发机器人自身发送的消息 */
+    forwardSelfMessage?: boolean;
     /** 早柚命令前缀，默认为 #早柚，用于群内快捷命令（如 #早柚群启用） */
     commandPrefix: string;
     /** 主人QQ，设置后仅该用户可用群内命令 */

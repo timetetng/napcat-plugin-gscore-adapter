@@ -19,6 +19,15 @@ function getPluginVersion(): string {
     return __PLUGIN_VERSION__ || 'unknown';
 }
 
+async function forwardToGScore(event: OB11Message): Promise<void> {
+    try {
+        const { GScoreService } = await import('../services/gscore-service');
+        await GScoreService.getInstance().forwardMessage(event);
+    } catch (err) {
+        pluginState.logger.error('转发消息到 GScore 失败:', err);
+    }
+}
+
 // ==================== 消息发送工具 ====================
 
 /**
@@ -143,6 +152,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         const messageType = event.message_type;
         const groupId = event.group_id;
         const userId = event.user_id;
+        const isSelfMessage = String(userId) === String(event.self_id || pluginState.selfId || '');
 
         // ==================== 黑名单检查 ====================
         if (pluginState.isBlacklisted(String(userId))) {
@@ -230,26 +240,30 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
         }
 
         // ==================== 消息转发逻辑 ====================
+        const shouldForwardSelf = !!pluginState.config.forwardSelfMessage;
+        const shouldSkipSelf = isSelfMessage && !shouldForwardSelf;
+
+        if (isSelfMessage) {
+            pluginState.ctx.logger.debug(`收到机器人自身消息事件: forwardSelfMessage=${shouldForwardSelf}`);
+        }
+
         if (!pluginState.config.gscoreEnable) {
             // 全局 GScore 未启用，跳过转发
-        } else if (messageType === 'group' && groupId) {
-            const groupEnabled = pluginState.isGroupEnabled(String(groupId));
+        } else if (shouldSkipSelf) {
+            pluginState.ctx.logger.debug('已忽略机器人自身消息转发（配置未开启）');
+        } else {
+            const isGroupMessage = messageType === 'group' && !!groupId;
+            const isPrivateMessage = messageType === 'private';
 
-            if (groupEnabled || canBypassGroupDisable(event)) {
-                try {
-                    const { GScoreService } = await import('../services/gscore-service');
-                    await GScoreService.getInstance().forwardMessage(event);
-                } catch (err) {
-                    pluginState.logger.error('转发群消息到 GScore 失败:', err);
+            if (isGroupMessage) {
+                const groupEnabled = pluginState.isGroupEnabled(String(groupId));
+                if (!groupEnabled && !canBypassGroupDisable(event)) {
+                    // 群已禁用且无权限绕过
+                } else {
+                    await forwardToGScore(event);
                 }
-            }
-        } else if (messageType === 'private') {
-            // 私聊消息：直接转发到 GScore
-            try {
-                const { GScoreService } = await import('../services/gscore-service');
-                await GScoreService.getInstance().forwardMessage(event);
-            } catch (err) {
-                pluginState.logger.error('转发私聊消息到 GScore 失败:', err);
+            } else if (isPrivateMessage) {
+                await forwardToGScore(event);
             }
         }
 

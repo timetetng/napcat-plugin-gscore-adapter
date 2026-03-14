@@ -32,6 +32,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     const out: PluginConfig = { ...DEFAULT_CONFIG, groupConfigs: {} };
   
     if (typeof raw.gscoreEnable === 'boolean') out.gscoreEnable = raw.gscoreEnable;
+    if (typeof raw.forwardSelfMessage === 'boolean') out.forwardSelfMessage = raw.forwardSelfMessage;
     if (typeof raw.commandPrefix === 'string') out.commandPrefix = raw.commandPrefix;
     if (typeof raw.masterQQ === 'string') out.masterQQ = raw.masterQQ;
     if (typeof raw.gscoreUrl === 'string') out.gscoreUrl = raw.gscoreUrl;
