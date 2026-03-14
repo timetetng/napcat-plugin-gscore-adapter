@@ -608,7 +608,7 @@ export class GScoreService {
                   if (customName && customName.trim()) {
                     nickname = customName.trim();
                   } else {
-                    nickname = `🦊小助手`;
+                    nickname = String(pluginState.selfNickname || '🦊小助手');
                   }
                 }
 
