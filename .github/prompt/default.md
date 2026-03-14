@@ -9,5 +9,10 @@
 2. 解压到 NapCat 的 `plugins` 目录
 3. 重启 NapCat
 
-> ⚠️ 从别的框架迁移的请检查 **早柚核心webui-数据库管理-订阅管理**中相关订阅中的**WS机器人ID**是否为**napcat-qq号格式**，不是请手动更改为**napcat-botQQ号**，避免自动推送出现问题
+### ⚠️ 注意
+1.  自动更新推送出现问题的，可参考 issue #3 对早柚配置进行修改（可以不删，手动改一下也行）
+2.  容器建议映射 `/app/napcat/plugins` 和 `/app/napcat/config` 避免更新容器导致插件以及其配置丢失
+
+
+> 💡 你也可以在 **[napcat-plugin-update-checker](https://github.com/xiowo/napcat-plugin-update-checker) 中直接安装插件**。
 
