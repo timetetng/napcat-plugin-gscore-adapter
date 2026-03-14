@@ -83,7 +83,22 @@ export class GScoreService {
     pluginState.logger.info('[GScore] 触发手动重连命令');
     this.connect();
 
-    return '🔄 正在执行手动重连...';
+    const result = await new Promise<string>((resolve) => {
+      const timer = setInterval(() => {
+        if (this.getStatus() === 'connected') {
+          clearInterval(timer);
+          this.isManualRetry = false;
+          resolve('✅ 当前 Bot 已连接。');
+          return;
+        }
+        if (!this.isManualRetry) {
+          clearInterval(timer);
+          resolve('❌ 连接失败，手动重连次数已达上限，请检查配置或手动重试。');
+        }
+      }, 500);
+    });
+
+    return result;
   }
 
 
@@ -250,8 +265,11 @@ export class GScoreService {
 
     // maxAttempts 为 0 时表示无限重试
     if (maxAttempts > 0 && this.reconnectAttempts >= maxAttempts) {
-      const mode = this.isManualRetry ? '手动' : '自动';
-      pluginState.logger.error(`[GScore] ${mode}重连次数已达上限 (${maxAttempts})，停止重连。请检查配置或手动重试。`);
+      if (this.isManualRetry) {
+        pluginState.logger.error(`[GScore] 手动重连次数已达上限（${maxAttempts})，停止重连。请检查配置或手动重试。`);
+      } else {
+        pluginState.logger.error(`[GScore] 自动重连次数已达上限（${maxAttempts})，停止重连。请检查配置或手动重试。`);
+      }
       this.isManualRetry = false;
       return;
     }
