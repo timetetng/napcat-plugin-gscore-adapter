@@ -58,8 +58,8 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         // 命令配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">命令配置</div>'),
         ctx.NapCatConfig.text('commandPrefix', '命令前缀', '#早柚', '群内快捷命令前缀，例如设置为 "#早柚" 则命令为 "#早柚群开启"'),
-        ctx.NapCatConfig.text('masterQQ', '主人QQ', '', '设置主人QQ，留空保留默认权限（群主/管理员），填写后仅该QQ可以使用群内配置命令。多个QQ请用英文逗号分隔'),
-        ctx.NapCatConfig.boolean('masterForwardWhenDisabled', '主人正常转发', false, '开启后群禁用仍转发主人消息，未配置主人时转发群主/管理员消息'),
+        ctx.NapCatConfig.text('masterQQ', '主人QQ', '', '设置主人QQ；仅该配置QQ可使用管理命令。多个QQ请用英文逗号分隔'),
+        ctx.NapCatConfig.boolean('masterForwardWhenDisabled', '主人正常转发', false, '开启后群禁用仍转发主人消息'),
         // 新增：图片外显配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">消息配置</div>'),
         ctx.NapCatConfig.text('customImageSummary', '图片外显', '', '用于设置图片消息的summary，多个外显文本请用英文逗号隔开，发送时将随机选择一个'),

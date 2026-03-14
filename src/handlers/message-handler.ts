@@ -76,8 +76,8 @@ export async function sendGroupMessage(
 /**
  * 检查是否有权限执行管理命令
  * 规则：
- * 1. 如果配置了 masterQQ，仅 masterQQ 有权限
- * 2. 如果未配置 masterQQ，仅群主和管理员有权限
+ * 1. 命令仅允许配置的 masterQQ 使用（群/私聊一致）
+ * 2. 未配置 masterQQ 时无权限
  * 3. 被拉黑的用户无任何权限
  */
 function checkPermission(event: OB11Message): boolean {
@@ -89,19 +89,25 @@ function checkPermission(event: OB11Message): boolean {
     }
 
     const masterQQ = pluginState.config.masterQQ;
-    // 设置了主人QQ
-    if (masterQQ && String(masterQQ).trim().length > 0) {
-        const masterQQs = String(masterQQ).split(',').map(qq => qq.trim());
-        return masterQQs.includes(String(event.user_id));
-    }
+    const hasMaster = !!masterQQ && String(masterQQ).trim().length > 0;
+    const masterQQs = hasMaster
+        ? String(masterQQ).split(',').map(qq => qq.trim())
+        : [];
+    const isMaster = hasMaster && masterQQs.includes(userId);
 
-    // 私聊直接通过
-    if (event.message_type !== 'group') return true;
-    const role = (event.sender as Record<string, unknown>)?.role;
-    return role === 'admin' || role === 'owner';
+    // 未配置主人时无权限
+    if (!hasMaster) return false;
+    return isMaster;
 }
 
 const PERMISSION_DENIED_MSG = '❌ 没有权限，仅授权用户可操作';
+const PERMISSION_NO_MASTER_MSG = '❌ 没有权限，请先配置主人';
+
+function getPermissionDeniedMessage(event: OB11Message): string {
+    const masterQQ = pluginState.config.masterQQ;
+    const hasMaster = !!masterQQ && String(masterQQ).trim().length > 0;
+    return !hasMaster ? PERMISSION_NO_MASTER_MSG : PERMISSION_DENIED_MSG;
+}
 
 /**
  * 权限检查
@@ -111,7 +117,7 @@ async function denyIfNoPermission(
     event: OB11Message
 ): Promise<boolean> {
     if (!checkPermission(event)) {
-        await sendReply(ctx, event, PERMISSION_DENIED_MSG);
+        await sendReply(ctx, event, getPermissionDeniedMessage(event));
         return true;
     }
     return false;
@@ -307,7 +313,7 @@ export async function handleMessage(ctx: NapCatPluginContext, event: OB11Message
                 if (isAllowed) {
                     await sendReply(ctx, event, `🦊插件版本: ${getPluginVersion()}`);
                 } else {
-                    await sendReply(ctx, event, PERMISSION_DENIED_MSG);
+                    await sendReply(ctx, event, getPermissionDeniedMessage(event));
                 }
                 break;
             }

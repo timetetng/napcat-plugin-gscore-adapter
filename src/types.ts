@@ -17,7 +17,7 @@ export interface PluginConfig {
     gscoreEnable: boolean;
     /** 早柚命令前缀，默认为 #早柚，用于群内快捷命令（如 #早柚群启用） */
     commandPrefix: string;
-    /** 主人QQ，设置后仅该用户可用群内命令，留空则默认群主/管理员可用 */
+    /** 主人QQ，设置后仅该用户可用群内命令 */
     masterQQ?: string;
     /** GScore 连接地址 */
     gscoreUrl: string;
@@ -33,7 +33,7 @@ export interface PluginConfig {
     blacklist: string[];
     /** 自定义图片外显 */
     customImageSummary?: string;
-    /** 主人正常转发开关，开启后禁用群聊后主人仍可正常转发消息（未配置则管理员/群主正常） */
+    /** 主人正常转发开关，开启后禁用群聊后主人仍可正常转发消息 */
     masterForwardWhenDisabled?: boolean;
     /** 彩蛋配置：是否启用自定义合并转发信息 */
     customForwardInfo?: boolean;
