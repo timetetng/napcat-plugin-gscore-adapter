@@ -55,6 +55,14 @@ function copyAssetsPlugin() {
                     console.log('[copy-assets] (o\'v\'o) 已复制 webui 目录');
                 }
 
+                // 复制 icon.png
+                const iconSrc = resolve(__dirname, 'icon.png');
+                const iconDest = resolve(distDir, 'icon.png');
+                if (fs.existsSync(iconSrc)) {
+                    fs.copyFileSync(iconSrc, iconDest);
+                    console.log('[copy-assets] (o\'v\'o) 已复制 icon.png');
+                }
+
                 // 生成精简的 package.json（只保留运行时必要字段）
                 const pkgPath = resolve(__dirname, 'package.json');
                 if (fs.existsSync(pkgPath)) {
