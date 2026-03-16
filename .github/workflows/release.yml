@@ -70,10 +70,11 @@ jobs:
           cp -r dist/webui release/
           cp dist/index.mjs release/
           cp dist/package.json release/
+          cp dist/icon.png release/
 
           # 进入临时目录并压缩
           cd release
-          zip -r ../${PLUGIN_NAME}.zip index.mjs package.json webui
+          zip -r ../${PLUGIN_NAME}.zip index.mjs package.json icon.png webui
 
       - name: Verify zip contents
         run: |
