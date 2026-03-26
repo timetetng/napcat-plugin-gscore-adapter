@@ -454,7 +454,47 @@ export class GScoreService {
               }
 
               const fileName = String(segData?.file || 'file').trim() || 'file';
-              content.push({ type: 'file', data: `${fileName}|${fileUrl}` });
+
+              // 私聊 JSON 文件：按配置限制大小，符合则转裸 base64，不符合则不转发并提示
+              const isJsonFile = fileName.toLowerCase().endsWith('.json');
+              if (isJsonFile) {
+                try {
+                  const maxKbRaw = pluginState.config.privateJsonBase64MaxKb;
+                  const maxKb = typeof maxKbRaw === 'number' && Number.isFinite(maxKbRaw) && maxKbRaw > 0 ? maxKbRaw : 1024;
+                  const maxBytes = Math.floor(maxKb * 1024);
+
+                  const response = await fetch(fileUrl);
+                  if (!response.ok) {
+                    pluginState.logger.warn(`[GScore] 下载私聊 JSON 文件失败: status=${response.status}，已跳过 file 段`);
+                    break;
+                  }
+
+                  const buffer = Buffer.from(await response.arrayBuffer());
+                  const fileSize = buffer.byteLength;
+
+                  if (fileSize > maxBytes) {
+                    pluginState.logger.warn(`[GScore] 私聊 JSON 文件过大(${fileSize} bytes > ${maxBytes} bytes)，已跳过 file 段`);
+                    await ctx.actions.call(
+                      'send_msg',
+                      {
+                        message_type: 'private',
+                        user_id: String(event.user_id || ''),
+                        message: `⚠️ JSON 过大（${(fileSize / 1024).toFixed(1)}KB），超过限制 ${maxKb}KB，已跳过转发`
+                      },
+                      ctx.adapterName,
+                      ctx.pluginManager.config
+                    );
+                    break;
+                  }
+
+                  const fileBase64Raw = buffer.toString('base64');
+                  content.push({ type: 'file', data: `${fileName}|${fileBase64Raw}` });
+                } catch (error) {
+                  pluginState.logger.warn('[GScore] 处理私聊 JSON 文件失败，已跳过 file 段:', error);
+                }
+              } else {
+                content.push({ type: 'file', data: `${fileName}|${fileUrl}` });
+              }
             } catch (error) {
               pluginState.logger.warn('[GScore] 获取私聊文件链接失败，已跳过 file 段:', error);
             }

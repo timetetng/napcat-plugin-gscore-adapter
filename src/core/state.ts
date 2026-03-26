@@ -46,6 +46,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.customForwardQQ === 'string') out.customForwardQQ = raw.customForwardQQ;
     if (typeof raw.customForwardName === 'string') out.customForwardName = raw.customForwardName;
     if (typeof raw.privateFileForwardEnabled === 'boolean') out.privateFileForwardEnabled = raw.privateFileForwardEnabled;
+    if (typeof raw.privateJsonBase64MaxKb === 'number') out.privateJsonBase64MaxKb = raw.privateJsonBase64MaxKb;
 
     // 黑名单清洗
     if (Array.isArray(raw.blacklist)) {
