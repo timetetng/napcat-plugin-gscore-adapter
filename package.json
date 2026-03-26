@@ -4,6 +4,7 @@
   "version": "1.2.1",
   "type": "module",
   "main": "index.mjs",
+  "icon": "icon.png",
   "description": "一个适用于NapCat的GScore适配器",
   "author": "MortalCat",
   "license": "MIT",

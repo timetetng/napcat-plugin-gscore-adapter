@@ -29,7 +29,6 @@ import { EventType } from 'napcat-types/napcat-onebot/event/index';
 import { buildConfigSchema } from './config';
 import { pluginState } from './core/state';
 import { handleMessage } from './handlers/message-handler';
-import { ensureConfigIcon } from './services/icon-cache';
 import type { PluginConfig } from './types';
 
 // ==================== 配置 UI Schema ====================
@@ -47,8 +46,6 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
     try {
         // 加载配置
         await pluginState.init(ctx);
-
-        await ensureConfigIcon(ctx.configPath, ctx.logger);
 
         ctx.logger.info('插件初始化中...');
 
