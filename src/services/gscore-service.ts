@@ -300,7 +300,7 @@ export class GScoreService {
 
     try {
       // 将 OB11 message 段转换为 GsCore 的 Message[] (content)
-      const content = this.convertOB11ToGsCoreContent(event);
+      const content = await this.convertOB11ToGsCoreContent(event);
 
       let replySeg;
       if (Array.isArray(event.message)) {
@@ -385,7 +385,7 @@ export class GScoreService {
    * 将 OB11 消息段数组转换为 GsCore 的 Message[] 格式
    * GsCore Message: { type: string, data: any }
    */
-  private convertOB11ToGsCoreContent(event: OB11Message): Array<{ type: string; data: unknown }> {
+  private async convertOB11ToGsCoreContent(event: OB11Message): Promise<Array<{ type: string; data: unknown }>> {
     const content: Array<{ type: string; data: unknown }> = [];
     const message = event.message;
 
@@ -421,7 +421,46 @@ export class GScoreService {
           content.push({ type: 'record', data: segData?.url || segData?.file || '' });
           break;
         case 'file':
-          content.push({ type: 'file', data: `${segData?.name || 'file'}|${segData?.url || ''}` });
+          if (event.message_type === 'private') {
+            if (!pluginState.config.privateFileForwardEnabled) {
+              pluginState.logger.debug('[GScore] 私聊文件转发开关关闭，已跳过 file 段');
+              break;
+            }
+
+            try {
+              const ctx = pluginState.ctx;
+              const fileIdRaw = segData?.file_id ?? segData?.fid ?? segData?.file;
+              const fileId = String(fileIdRaw || '').trim();
+
+              if (!fileId) {
+                pluginState.logger.warn('[GScore] 私聊 file 段缺少 file_id，无法获取链接，已跳过');
+                break;
+              }
+
+              const resp = await ctx.actions.call(
+                'get_private_file_url',
+                {
+                  user_id: String(event.user_id || ''),
+                  file_id: fileId,
+                },
+                ctx.adapterName,
+                ctx.pluginManager.config
+              ) as { url?: string };
+
+              const fileUrl = typeof resp?.url === 'string' ? resp.url.trim() : '';
+              if (!fileUrl) {
+                pluginState.logger.warn('[GScore] get_private_file_url 未返回有效 url，已跳过私聊 file 段');
+                break;
+              }
+
+              const fileName = String(segData?.file || 'file').trim() || 'file';
+              content.push({ type: 'file', data: `${fileName}|${fileUrl}` });
+            } catch (error) {
+              pluginState.logger.warn('[GScore] 获取私聊文件链接失败，已跳过 file 段:', error);
+            }
+          } else {
+            content.push({ type: 'file', data: `${segData?.file || 'file'}|${segData?.url || ''}` });
+          }
           break;
         default:
           // 其他未知类型，尝试转为文本

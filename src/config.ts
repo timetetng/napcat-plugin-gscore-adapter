@@ -24,6 +24,7 @@ export const DEFAULT_CONFIG: PluginConfig = {
     customForwardInfo: false,
     customForwardQQ: '',
     customForwardName: '',
+    privateFileForwardEnabled: false,
 };
 
 /**
@@ -64,8 +65,13 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         ctx.NapCatConfig.text('masterQQ', '主人QQ', '', '设置主人QQ以使用管理命令。多个QQ请用英文逗号分隔'),
         ctx.NapCatConfig.boolean('masterForwardWhenDisabled', '主人正常转发', false, '开启后群禁用仍转发主人消息'),
         ctx.NapCatConfig.boolean('silentNoPermission', '无权限静默', false, '开启后无权限用户不返回权限提示'),
-        // 新增：图片外显配置
+        // 图片外显配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">消息配置</div>'),
         ctx.NapCatConfig.text('customImageSummary', '图片外显', '', '用于设置图片消息的summary，多个外显文本请用英文逗号隔开，发送时将随机选择一个'),
+
+        // 扩展兼容项
+        ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">扩展兼容项</div>'),
+        ctx.NapCatConfig.boolean('privateFileForwardEnabled', '私聊转发文件', false, '开启后私聊收到 file 消息会自动获取链接并转发；关闭则不转发私聊文件消息'
+        ),
     );
 }
