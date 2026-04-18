@@ -1,6 +1,6 @@
-
-import WebSocket from 'ws';
+ import WebSocket from 'ws';
 import type { OB11Message, OB11PostSendMsg } from 'napcat-types/napcat-onebot';
+import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { pluginState } from '../core/state';
 
 /**
@@ -100,7 +100,6 @@ export class GScoreService {
 
     return result;
   }
-
 
   public connect() {
     if (!pluginState.config.gscoreEnable) {
@@ -302,39 +301,12 @@ export class GScoreService {
       // 将 OB11 message 段转换为 GsCore 的 Message[] (content)
       const content = await this.convertOB11ToGsCoreContent(event);
 
-      let replySeg;
+      // 解析额外引用/转发内嵌的图片
       if (Array.isArray(event.message)) {
-        replySeg = event.message.find((seg) => seg.type === 'reply');
-      }
-
-      if (replySeg) {
-        const replyId = (replySeg.data as any)?.id;
-        if (replyId) {
-          try {
-            const ctx = pluginState.ctx;
-            // 调用 get_msg 获取被引用消息详情
-            const replyMsg = await ctx.actions.call('get_msg', { message_id: replyId }, ctx.adapterName, ctx.pluginManager.config) as OB11Message;
-
-            pluginState.logger.debug(`[GScore] 获取到的引用消息: ${JSON.stringify(replyMsg)}`);
-
-            if (replyMsg && Array.isArray(replyMsg.message)) {
-              for (const seg of replyMsg.message) {
-                if (seg.type === 'image') {
-                  const segData = seg.data as any;
-                  let url = segData?.url || segData?.file;
-                  if (typeof url === 'string') {
-                    url = url.trim();
-                    if (url) {
-                      content.push({ type: 'image', data: url });
-                      pluginState.logger.debug(`[GScore] 已提取引用消息中的图片: ${url}`);
-                    }
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            pluginState.logger.warn(`[GScore] 获取引用消息失败: ${err}`);
-          }
+        const extraImages = await this.extractExtraImages(pluginState.ctx, event.message, 0, 2);
+        for (const url of extraImages) {
+          content.push({ type: 'image', data: url });
+          pluginState.logger.debug(`[GScore] 已提取额外(引用/转发)消息中的图片: ${url}`);
         }
       }
 
@@ -350,7 +322,6 @@ export class GScoreService {
       }
 
       // 构造 GsCore MessageReceive 结构
-      // 所有 ID 字段必须为 string 类型
       const messageReceive = {
         bot_id: 'onebot',
         bot_self_id: String(pluginState.selfId || event.self_id || ''),
@@ -382,15 +353,92 @@ export class GScoreService {
   }
 
   /**
+   * 递归提取消息段中的图片
+   * 支持解析引用（reply）和转发（forward/node），最多解析 maxDepth 层
+   */
+  private async extractExtraImages(ctx: NapCatPluginContext, segments: any[], currentDepth: number, maxDepth: number): Promise<string[]> {
+    if (currentDepth > maxDepth) return [];
+    const imageUrls: Set<string> = new Set();
+
+    for (const seg of segments) {
+      // 0 层级的普通图片已经在 convertOB11ToGsCoreContent 处理过了，所以此处限制 currentDepth > 0
+      if (currentDepth > 0 && seg.type === 'image') {
+        const url = seg.data?.url || seg.data?.file;
+        if (typeof url === 'string' && url.trim()) {
+          imageUrls.add(url.trim());
+        }
+      } else if (seg.type === 'reply') {
+        const replyId = seg.data?.id;
+        if (replyId) {
+          try {
+            const replyMsg = await ctx.actions.call('get_msg', { message_id: replyId }, ctx.adapterName, ctx.pluginManager.config) as OB11Message;
+            if (replyMsg && Array.isArray(replyMsg.message)) {
+              const nestedImages = await this.extractExtraImages(ctx, replyMsg.message, currentDepth + 1, maxDepth);
+              nestedImages.forEach(u => imageUrls.add(u));
+            }
+          } catch (err) {
+            pluginState.logger.warn(`[GScore] 获取引用消息失败: ${err}`);
+          }
+        }
+      } else if (seg.type === 'forward' || seg.type === 'node') {
+        const data = seg.data as any;
+        // 已有直接 content 信息的合并转发片段
+        if (Array.isArray(data?.content) && data.content.length > 0) {
+          for (const sub of data.content) {
+            let subSegments: any[] = [];
+            if (Array.isArray(sub.message)) {
+              subSegments = sub.message;
+            } else if (Array.isArray(sub.content)) {
+              subSegments = sub.content;
+            } else if (sub.type) {
+              subSegments = [sub];
+            }
+            if (subSegments.length > 0) {
+              const nestedImages = await this.extractExtraImages(ctx, subSegments, currentDepth + 1, maxDepth);
+              nestedImages.forEach(u => imageUrls.add(u));
+            }
+          }
+        } else if (data?.id) {
+          // 需要通过接口获取详情的合并转发信息
+          try {
+            const forwardMsg = await ctx.actions.call('get_forward_msg', { message_id: data.id }, ctx.adapterName, ctx.pluginManager.config) as any;
+            let msgList: any[] = [];
+            if (Array.isArray(forwardMsg)) {
+              msgList = forwardMsg;
+            } else if (forwardMsg && Array.isArray(forwardMsg.messages)) {
+              msgList = forwardMsg.messages;
+            } else if (forwardMsg && Array.isArray(forwardMsg.data)) {
+              msgList = forwardMsg.data;
+            }
+            
+            for (const m of msgList) {
+              let subSegments: any[] = [];
+              if (Array.isArray(m.message)) subSegments = m.message;
+              else if (Array.isArray(m.content)) subSegments = m.content;
+              else if (m.type) subSegments = [m];
+
+              if (subSegments.length > 0) {
+                const nestedImages = await this.extractExtraImages(ctx, subSegments, currentDepth + 1, maxDepth);
+                nestedImages.forEach(u => imageUrls.add(u));
+              }
+            }
+          } catch (err) {
+            pluginState.logger.warn(`[GScore] 获取转发消息失败: ${err}`);
+          }
+        }
+      }
+    }
+    return Array.from(imageUrls);
+  }
+
+  /**
    * 将 OB11 消息段数组转换为 GsCore 的 Message[] 格式
-   * GsCore Message: { type: string, data: any }
    */
   private async convertOB11ToGsCoreContent(event: OB11Message): Promise<Array<{ type: string; data: unknown }>> {
     const content: Array<{ type: string; data: unknown }> = [];
     const message = event.message;
 
     if (!message || !Array.isArray(message)) {
-      // 如果没有 message 数组，使用 raw_message 作为文本
       if (event.raw_message) {
         content.push({ type: 'text', data: event.raw_message });
       }
@@ -404,7 +452,6 @@ export class GScoreService {
           content.push({ type: 'text', data: segData?.text || '' });
           break;
         case 'image':
-          // 图片：GsCore 接收时一般为 url
           content.push({ type: 'image', data: segData?.url || segData?.file || '' });
           break;
         case 'at':
@@ -414,7 +461,6 @@ export class GScoreService {
           content.push({ type: 'reply', data: String(segData?.id || '') });
           break;
         case 'face':
-          // 表情转为文本占位
           content.push({ type: 'text', data: `[表情:${segData?.id || ''}]` });
           break;
         case 'record':
@@ -454,8 +500,6 @@ export class GScoreService {
               }
 
               const fileName = String(segData?.file || 'file').trim() || 'file';
-
-              // 私聊 JSON 文件：按配置限制大小，符合则转裸 base64，不符合则不转发并提示
               const isJsonFile = fileName.toLowerCase().endsWith('.json');
               if (isJsonFile) {
                 try {
@@ -503,7 +547,6 @@ export class GScoreService {
           }
           break;
         default:
-          // 其他未知类型，尝试转为文本
           if (segData?.text) {
             content.push({ type: 'text', data: segData.text });
           }
@@ -629,7 +672,6 @@ export class GScoreService {
             imageData.file = imgData;
           }
 
-          // 仅在 imageData.file 有效时才添加 summary
           if (imageData.file) {
             imageData.summary = summary;
           }
@@ -674,24 +716,19 @@ export class GScoreService {
         }
 
         case 'markdown':
-          // Markdown 消息：NapCat 不直接支持 markdown 消息段，转为文本
           result.push({ type: 'text', data: { text: String(msg.data) } });
           break;
 
         case 'node': {
-          // 合并转发里的子消息
           if (Array.isArray(msg.data)) {
             const subMessagesRaw = msg.data as GsCoreMessage[];
-            // 遍历每个子消息，将其分别包装为 node 节点
             for (const subMsg of subMessagesRaw) {
               const ob11Segments = this.convertGsCoreToOB11([subMsg]);
 
               if (ob11Segments.length > 0) {
-                // 构造 node 节点
                 let userId = `3889929917`;
                 let nickname = `🦊小助手`;
                 
-                // 使用自定义配置
                 if (pluginState.config.customForwardInfo) {
                   const customQQ = pluginState.config.customForwardQQ;
                   const customName = pluginState.config.customForwardName;
@@ -724,18 +761,13 @@ export class GScoreService {
         }
 
         case 'image_size':
-          // 图片大小信息，OB11 不需要，忽略
-          break;
-
         case 'buttons':
         case 'template_buttons':
         case 'template_markdown':
         case 'group':
-          // 按钮、模板消息、内部群号标记等，QQ 群聊不需要，忽略
           break;
 
         default:
-          // 未知类型，如果有可显示内容就转为文本
           if (msg.data && typeof msg.data === 'string' && msg.data.length > 0) {
             result.push({ type: 'text', data: { text: msg.data } });
           }
